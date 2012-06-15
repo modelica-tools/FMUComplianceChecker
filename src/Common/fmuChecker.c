@@ -19,6 +19,7 @@
 #include <stdarg.h>
 
 // #include <config_test.h>
+#include <JM/jm_portability.h>
 #include <fmilib.h>
 
 const char* fmu_checker_module = "FMUCHK";
@@ -65,8 +66,8 @@ void print_usage() {
 typedef struct fmu_check_data_t {
 	fmi1_callback_functions_t callBackFunctions;
 	const char* FMUPath;
-	const char* tmpPath;
-	char* temp_dir;
+	char* tmpPath;
+	const char* temp_dir;
 	const char* modelIdentifier;
 	const char* modelName;
 	const char*  GUID;
@@ -179,6 +180,32 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		do_exit(-1);
 	}
 	cdata->FMUPath = argv[i];
+	if(!cdata->temp_dir) {
+		cdata->temp_dir = jm_get_system_temp_dir();
+		if(!cdata->temp_dir) cdata->temp_dir = "." FMI_FILE_SEP;
+	}
+	{
+		const char * tmpl = FMI_FILE_SEP "fmutmpXXXXXX";
+		size_t len;
+		len = strlen(cdata->temp_dir);
+		if((cdata->temp_dir[len-1] == tmpl[0]) || (cdata->temp_dir[len-1] == '/')) 
+			tmpl++;
+		cdata->tmpPath = (char*)cdata->callbacks.malloc(strlen(cdata->temp_dir) + strlen(tmpl) + 1);
+		if(!cdata->tmpPath) {
+			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not allocate memory");
+			do_exit(-1);
+		}
+		sprintf(cdata->tmpPath,"%s%s",cdata->temp_dir,tmpl);
+		if(!jm_mktemp(cdata->tmpPath)) {
+			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not create a unique temporary directory name");
+			cdata->callbacks.free(cdata->tmpPath);
+			do_exit(-1);
+		}
+		if(jm_mkdir(&cdata->callbacks,cdata->tmpPath) != jm_status_success) {
+			cdata->callbacks.free(cdata->tmpPath);
+			do_exit(-1);
+		}
+	}
 }
 
 void init_fmu_check_data(fmu_check_data_t* cdata) {
@@ -208,6 +235,22 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->do_simulate_flg = 1;
 }
 
+void clear_fmu_check_data(fmu_check_data_t* cdata) {
+	if(cdata->fmu1) {
+		fmi1_import_destroy_dllfmu(cdata->fmu1);
+		fmi1_import_free(cdata->fmu1);
+		cdata->fmu1 = 0;
+	}
+	if(cdata->context) {
+		fmi_import_free_context(cdata->context);
+		cdata->context = 0;
+	}
+	if(cdata->tmpPath) {
+		jm_rmdir(&cdata->callbacks,cdata->tmpPath);
+		cdata->callbacks.free(cdata->tmpPath);
+		cdata->tmpPath = 0;
+	}
+}
 
 int main(int argc, char *argv[])
 {
@@ -222,8 +265,6 @@ int main(int argc, char *argv[])
 	init_fmu_check_data(&cdata);
 	callbacks = &cdata.callbacks;
 	parse_options(argc, argv, &cdata);
-
-	cdata.tmpPath = cdata.temp_dir;
 
 #ifdef FMILIB_GENERATE_BUILD_STAMP
 	jm_log_debug(callbacks,fmu_checker_module,"FMIL build stamp:\n%s\n", fmilib_get_build_stamp());
@@ -271,11 +312,8 @@ int main(int argc, char *argv[])
 
 	jm_log_info(callbacks,fmu_checker_module,"Version returned from FMU:   %s\n", fmi1_import_get_version(cdata.fmu1));
 
-	fmi1_import_destroy_dllfmu(cdata.fmu1);
+	clear_fmu_check_data(&cdata);
 
-	fmi1_import_free(cdata.fmu1);
-	fmi_import_free_context(cdata.context);
-	
 	jm_log_info(callbacks,fmu_checker_module, "Everything seems to be OK since you got this far=)!");
 
 	do_exit(0);
