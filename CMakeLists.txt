@@ -11,6 +11,11 @@ set(FMUCHK_FMI_STANDARD_HEADERS  ${FMUCHK_FMIL_HOME_DIR}/ThirdParty/FMI/standard
 option(FMUCHK_ENABLE_LOG_LEVEL_DEBUG "Enable log level 'debug'. If the option is of then the debug level is not compiled in." OFF)
 set(FMUCHK_TEST_FMUS_DIR ${FMUCHK_HOME}/TestFMUs CACHE PATH "Directory with FMUs to be used in tests (checker will run for each FMU)")
 
+if(MSVC)
+	# With C89 we're forced to use non-secure functions
+	ADD_DEFINITIONS (/D _CRT_SECURE_NO_WARNINGS)
+endif()
+
 # Add FMIL as imported library
 include(ExternalProject)
 
@@ -25,7 +30,7 @@ set(FMIL_SETTINGS
 	-DFMILIB_INSTALL_SUBLIBS:BOOLEAN=OFF
 	-DFMILIB_GENERATE_DOXYGEN_DOC:BOOLEAN=OFF
 	-DFMILIB_BUILD_TESTS:BOOLEAN=ON
-	-DFMILIB_GENERATE_BUILD_STAMP:BOOLEAN=OFF
+	-DFMILIB_GENERATE_BUILD_STAMP:BOOLEAN=ON
 	-DFMILIB_ENABLE_LOG_LEVEL_DEBUG:BOOLEAN=${FMUCHK_ENABLE_LOG_LEVEL_DEBUG}
 	-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 	-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}
@@ -92,8 +97,32 @@ set(ALL_TEST_FMUS
 ENABLE_TESTING()
 
 file(MAKE_DIRECTORY ${FMUCHK_BUILD}/tmpfolder) 
+
+add_test(
+	NAME Build_before_test
+	COMMAND "${CMAKE_COMMAND}" --build ${FMUCHK_BUILD} --config $<CONFIGURATION>)
+
+set(TEST_COMMAND_LINE_PARSING ON)
+if(TEST_COMMAND_LINE_PARSING)
+	add_test(check_command_line_parsing_0 fmuCheck )
+	add_test(check_command_line_parsing_1 fmuCheck -x -h a.fmu )
+	set_tests_properties(check_command_line_parsing_1 PROPERTIES WILL_FAIL TRUE)
+	add_test(check_command_line_parsing_2 fmuCheck -xx -h a.fmu )
+	set_tests_properties(check_command_line_parsing_2 PROPERTIES WILL_FAIL TRUE)
+	add_test(check_command_line_parsing_3 fmuCheck -l 5 -e a.fmu )
+	set_tests_properties(check_command_line_parsing_3 PROPERTIES WILL_FAIL TRUE)
+	add_test(check_command_line_parsing_4 fmuCheck -l 5  )
+	set_tests_properties(check_command_line_parsing_4 PROPERTIES WILL_FAIL TRUE)
+	add_test(check_command_line_parsing_5 fmuCheck -l 6 a.fmu -x  )
+	set_tests_properties(check_command_line_parsing_5 PROPERTIES WILL_FAIL TRUE)
+	add_test(check_command_line_parsing_6 fmuCheck -l 6 -n -1 a.fmu  )
+	set_tests_properties(check_command_line_parsing_6 PROPERTIES WILL_FAIL TRUE)
+	add_test(check_command_line_parsing_7 fmuCheck -l 6 -n 10 -e 1 -s -1 a.fmu  )
+	set_tests_properties(check_command_line_parsing_7 PROPERTIES WILL_FAIL TRUE)
+endif()
+
 foreach(fmu ${ALL_TEST_FMUS})
 	string(REPLACE "/" "_" testname "check_${fmu}")
 	string(REPLACE ":" "_" testname ${testname})
-	add_test(${testname} fmuCheck ${fmu} ${FMUCHK_BUILD}/tmpfolder)
+	add_test(${testname} fmuCheck -t ${FMUCHK_BUILD}/tmpfolder -l 6 ${fmu} )
 endforeach(fmu)
