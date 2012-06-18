@@ -77,13 +77,25 @@ add_custom_command(OUTPUT "${FMUCHK_BUILD}/FMIL/install/include/fmilib.h"
 )
 
 # Now create the checker executable
-set(SOURCE src/Common/fmuChecker.c)
-set(HEADERS ${FMUCHK_BUILD}/FMIL/install/include/fmilib.h)
+set(SOURCE 
+	${FMUCHK_HOME}/src/Common/fmuChecker.c
+	${FMUCHK_HOME}/src/FMI1/fmi1_me_sim.c
+	)
+set(HEADERS 
+	${FMUCHK_BUILD}/FMIL/install/include/fmilib.h
+	${FMUCHK_HOME}/include/Common/fmuChecker.h)
 
-include_directories(${FMUCHK_BUILD}/FMIL/install/include/)
+include_directories(
+	${FMUCHK_BUILD}/FMIL/install/include/
+	include/Common/
+	include)
 
 add_executable(fmuCheck ${SOURCE} ${HEADERS})
 target_link_libraries(fmuCheck fmilib)
+if(UNIX) 
+	message(STATUS "Adding -ldl to the linker")
+	target_link_libraries(fmuCheck dl)
+endif(UNIX)
 
 install(TARGETS fmuCheck DESTINATION ${FMUCHK_INSTALL_PREFIX})
 
@@ -102,7 +114,7 @@ add_test(
 	NAME Build_before_test
 	COMMAND "${CMAKE_COMMAND}" --build ${FMUCHK_BUILD} --config $<CONFIGURATION>)
 
-set(TEST_COMMAND_LINE_PARSING ON)
+set(TEST_COMMAND_LINE_PARSING OFF)
 if(TEST_COMMAND_LINE_PARSING)
 	add_test(check_command_line_parsing_0 fmuCheck )
 	add_test(check_command_line_parsing_1 fmuCheck -x -h a.fmu )
