@@ -100,7 +100,9 @@ endif(UNIX)
 install(TARGETS fmuCheck DESTINATION ${FMUCHK_INSTALL_PREFIX})
 
 # tests
-file(GLOB TEST_FMUS ${FMUCHK_TEST_FMUS_DIR}/*.fmu )
+file(TO_CMAKE_PATH ${FMUCHK_TEST_FMUS_DIR} FMUCHK_TEST_FMUS_DIR_NORMALIZED)
+file(GLOB_RECURSE TEST_FMUS "${FMUCHK_TEST_FMUS_DIR_NORMALIZED}/*.fmu" )
+	   
 set(ALL_TEST_FMUS 
 	${FMUCHK_BUILD}/FMIL/build/testfolder/BouncingBall_cs.fmu
 	${FMUCHK_BUILD}/FMIL/build/testfolder/BouncingBall_me.fmu
@@ -136,5 +138,5 @@ endif()
 foreach(fmu ${ALL_TEST_FMUS})
 	string(REPLACE "/" "_" testname "check_${fmu}")
 	string(REPLACE ":" "_" testname ${testname})
-	add_test(${testname} fmuCheck -t ${FMUCHK_BUILD}/tmpfolder -l 6 ${fmu} )
+	add_test(${testname} fmuCheck -t ${FMUCHK_BUILD}/tmpfolder -l 6 -o ${FMUCHK_BUILD}/tmpfolder/${testname}.csv ${fmu} )
 endforeach(fmu)
