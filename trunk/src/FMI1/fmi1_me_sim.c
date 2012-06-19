@@ -5,7 +5,7 @@
 jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 {	
 	fmi1_status_t fmistatus;
-	jm_status_enu_t jmstatus;
+	jm_status_enu_t jmstatus = jm_status_success;
 	jm_callbacks* cb = &cdata->callbacks;
 
 	fmi1_import_t* fmu = cdata->fmu1;
@@ -25,6 +25,10 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 	fmi1_real_t relativeTolerance = fmi1_import_get_default_experiment_tolerance(fmu);
 	fmi1_event_info_t eventInfo;
 	fmi1_boolean_t intermediateResults = fmi1_false;
+
+	if(cdata->stopTime > 0) {
+		tend = cdata->stopTime;
+	}
 
 	if(cdata->stepSize > 0) {
 		hdef = cdata->stepSize;
@@ -69,6 +73,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 	else {
 			jm_log_fatal(cb, fmu_checker_module, "Failed to initialize FMU for simulation (FMU status: %s)", fmi1_status_to_string(fmistatus));
 			fmistatus = fmi1_status_fatal;
+			jmstatus = jm_status_error;
 	}
 
 	tcur = tstart;
@@ -136,6 +141,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 
 	 if((fmistatus != fmi1_status_ok) && (fmistatus != fmi1_status_warning)) {
 		 jm_log_fatal(cb, fmu_checker_module, "Simulation loop terminated since FMU returned status: %s", fmi1_status_to_string(fmistatus));
+		jmstatus = jm_status_error;
 	 }
 	 else {
  		 jm_log_info(cb, fmu_checker_module, "Simulation finished successfully");
@@ -152,7 +158,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 	cb->free(event_indicators);
 	cb->free(event_indicators_prev);
 
-	return jm_status_success;
+	return 	jmstatus;
 }
 
 jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
