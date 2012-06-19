@@ -101,6 +101,8 @@ set_target_properties(
 		IMPORTED_LOCATION "${fmilib_name}"
 )
 
+add_dependencies(fmilib fmil)
+
 # Add a command that fakes generation of fmilib.h just to get dependencies right
 add_custom_command(OUTPUT "${FMUCHK_BUILD}/FMIL/install/include/fmilib.h"
                      COMMAND ${CMAKE_COMMAND} -E touch_nocreate "${FMUCHK_BUILD}/FMIL/install/include/fmilib.h"
@@ -144,6 +146,11 @@ ENABLE_TESTING()
 
 file(MAKE_DIRECTORY ${FMUCHK_BUILD}/tmpfolder) 
 
+add_test(NAME Test_FMIL
+		WORKING_DIRECTORY ${FMUCHK_BUILD}/FMIL/build
+		COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION>
+		)
+
 add_test(
 	NAME Build_before_test
 	COMMAND "${CMAKE_COMMAND}" --build ${FMUCHK_BUILD} --config $<CONFIGURATION>)
@@ -170,5 +177,5 @@ endif()
 foreach(fmu ${ALL_TEST_FMUS})
 	string(REPLACE "/" "_" testname "check_${fmu}")
 	string(REPLACE ":" "_" testname ${testname})
-	add_test(${testname} fmuCheck -t ${FMUCHK_BUILD}/tmpfolder -l 6 -o ${FMUCHK_BUILD}/tmpfolder/${testname}.csv ${fmu} )
+	add_test(${testname} fmuCheck -t ${FMUCHK_BUILD}/tmpfolder -e 0.01 -l 6 -o ${FMUCHK_BUILD}/tmpfolder/${testname}.csv ${fmu} )
 endforeach(fmu)
