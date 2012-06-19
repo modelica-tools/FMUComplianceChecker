@@ -11,6 +11,32 @@ set(FMUCHK_FMI_STANDARD_HEADERS  ${FMUCHK_FMIL_HOME_DIR}/ThirdParty/FMI/standard
 option(FMUCHK_ENABLE_LOG_LEVEL_DEBUG "Enable log level 'debug'. If the option is of then the debug level is not compiled in." OFF)
 set(FMUCHK_TEST_FMUS_DIR ${FMUCHK_HOME}/TestFMUs CACHE PATH "Directory with FMUs to be used in tests (checker will run for each FMU)")
 
+set(FMUCHK_FMI_PLATFORM_DOC "FMI platform defines the subdirectory within FMU where binary is located")
+set(FMUCHK_FMI_PLATFORM ”unknown” CACHE STRING ${FMUCHK_FMI_PLATFORM_DOC})
+if(FMUCHK_FMI_PLATFORM MATCHES ”unknown”)
+	if(CMAKE_HOST_WIN32) #Set to true when the host system is Windows and on cygwin.
+		set(FMI_PLATFORM win)
+	elseif(CMAKE_HOST_APPLE) #Set to true when the host system is Apple OSX. 
+		set(FMI_PLATFORM darwin)
+	elseif(CMAKE_HOST_UNIX) #Set to true when the host system is UNIX or UNIX like (i.e. APPLE and CYGWIN). 
+		set(FMI_PLATFORM linux)
+	else(CMAKE_HOST_WIN32)
+		message(SEND_ERROR "Target platform is not supported by the tests")
+		set(FMI_PLATFORM not_supported)
+	endif()
+	if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+		set(FMI_PLATFORM "${FMI_PLATFORM}32")
+	else()
+		set(FMI_PLATFORM "${FMI_PLATFORM}64")
+	endif()
+	
+	set(FMUCHK_FMI_PLATFORM ${FMI_PLATFORM} CACHE STRING ${FMUCHK_FMI_PLATFORM_DOC} FORCE)
+else()
+	set(FMI_PLATFORM ${FMUCHK_FMI_PLATFORM})
+endif()
+
+
+
 if(MSVC)
 	# With C89 we're forced to use non-secure functions
 	ADD_DEFINITIONS (/D _CRT_SECURE_NO_WARNINGS)
@@ -24,6 +50,7 @@ set(FMIL_SETTINGS
 	-DFMILibrary_BINARY_DIR:PATH="${FMUCHK_BUILD}/FMIL/build"
 	-DFMILIB_INSTALL_PREFIX:PATH=${FMUCHK_BUILD}/FMIL/install
 	-DFMILIB_FMI_STANDARD_HEADERS:PATH=${FMUCHK_FMI_STANDARD_HEADERS}
+	-DFMILIB_FMI_PLATFORM:STRING=${FMUCHK_FMI_PLATFORM}
 	-DFMILIB_DEFAULT_BUILD_TYPE_RELEASE:BOOLEAN=ON
 	-DFMILIB_BUILD_STATIC_LIB:BOOLEAN=ON
 	-DFMILIB_BUILD_SHARED_LIB:BOOLEAN=OFF
@@ -37,6 +64,10 @@ set(FMIL_SETTINGS
 	-DCMAKE_C_FLAGS_DEBUG:STRING=${CMAKE_C_FLAGS_DEBUG}
 	-DCMAKE_C_FLAGS_RELEASE:STRING=${CMAKE_C_FLAGS_RELEASE}
 	-DCMAKE_C_FLAGS_MINSIZEREL:STRING=${CMAKE_C_FLAGS_MINSIZEREL}
+	-DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
+	-DCMAKE_LINK_LIBRARY_FLAG:STRING=${CMAKE_LINK_LIBRARY_FLAG}
+	-DCMAKE_MODULE_LINKER_FLAGS:STRING=${CMAKE_MODULE_LINKER_FLAGS}
+	-DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}	
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO:STRING=${CMAKE_C_FLAGS_RELWITHDEBINFO}
 )
 
@@ -53,8 +84,8 @@ ExternalProject_Add_Step(
 	fmil fmil_reconfigure
 	DEPENDEES configure
 	DEPENDERS build
-	COMMAND ${CMAKE_COMMAND} -E echo "Running:  ${CMAKE_COMMAND} ${FMIL_SETTINGS} ${FMUCHK_FMIL_HOME_DIR}"
-	COMMAND ${CMAKE_COMMAND} ${FMIL_SETTINGS} "${FMUCHK_FMIL_HOME_DIR}"
+	COMMAND ${CMAKE_COMMAND} -E echo "Running:  ${CMAKE_COMMAND} ${FMIL_SETTINGS}  -G "${CMAKE_GENERATOR}" ${FMUCHK_FMIL_HOME_DIR}"
+	COMMAND ${CMAKE_COMMAND} ${FMIL_SETTINGS} -G "${CMAKE_GENERATOR}" "${FMUCHK_FMIL_HOME_DIR}"
 	DEPENDS ${FMUCHK_BUILD}/CMakeCache.txt ${FMUCHK_HOME}/CMakeLists.txt
 	WORKING_DIRECTORY ${FMUCHK_BUILD}/FMIL/build
 )
@@ -92,6 +123,7 @@ include_directories(
 
 add_executable(fmuCheck ${SOURCE} ${HEADERS})
 target_link_libraries(fmuCheck fmilib)
+
 if(UNIX) 
 	message(STATUS "Adding -ldl to the linker")
 	target_link_libraries(fmuCheck dl)
