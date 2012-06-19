@@ -10,6 +10,9 @@ set(FMUCHK_FMIL_HOME_DIR  ${FMUCHK_HOME}/ThirdParty/FMIL CACHE PATH "Path to the
 set(FMUCHK_FMI_STANDARD_HEADERS  ${FMUCHK_FMIL_HOME_DIR}/ThirdParty/FMI/standard32 CACHE PATH "Path to the FMI standard headers dir" )
 option(FMUCHK_ENABLE_LOG_LEVEL_DEBUG "Enable log level 'debug'. If the option is of then the debug level is not compiled in." OFF)
 set(FMUCHK_TEST_FMUS_DIR ${FMUCHK_HOME}/TestFMUs CACHE PATH "Directory with FMUs to be used in tests (checker will run for each FMU)")
+if(MSVC)
+	option (FMUCHK_BUILD_WITH_STATIC_RTLIB "Use static run-time libraries (/MT or /MTd linker flags)" ON)
+endif()
 
 set(FMUCHK_FMI_PLATFORM_DOC "FMI platform defines the subdirectory within FMU where binary is located")
 set(FMUCHK_FMI_PLATFORM ”unknown” CACHE STRING ${FMUCHK_FMI_PLATFORM_DOC})
@@ -35,11 +38,33 @@ else()
 	set(FMI_PLATFORM ${FMUCHK_FMI_PLATFORM})
 endif()
 
-
+set(fmuCheck fmuCheck.${FMUCHK_FMI_PLATFORM})
 
 if(MSVC)
 	# With C89 we're forced to use non-secure functions
 	ADD_DEFINITIONS (/D _CRT_SECURE_NO_WARNINGS)
+	
+	# Set the run-time library flag as controlled by the FMUCHK_BUILD_WITH_STATIC_RTLIB option
+	if(FMUCHK_BUILD_WITH_STATIC_RTLIB)
+		set(BUILD_WITH_STATIC_CRT YES)
+		set(replace_from "/MD")
+		set(replace_to "/MT")
+	else()
+		set(BUILD_WITH_STATIC_CRT NO)
+		set(replace_from "/MT")
+		set(replace_to "/MD")
+	endif(FMUCHK_BUILD_WITH_STATIC_RTLIB)
+
+	foreach(flag_var
+		CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+		CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO
+		CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+		CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
+		if(${${flag_var}} MATCHES "${replace_from}")
+			string(REPLACE "${replace_from}" "${replace_to}" tmp "${${flag_var}}")
+			set(${flag_var} ${tmp} CACHE STRING "compiler flags" FORCE)
+		endif()
+	endforeach(flag_var)	
 endif()
 
 # Add FMIL as imported library
@@ -70,6 +95,12 @@ set(FMIL_SETTINGS
 	-DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}	
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO:STRING=${CMAKE_C_FLAGS_RELWITHDEBINFO}
 )
+
+if(MSVC)
+	set(FMIL_SETTINGS ${FMIL_SETTINGS}
+		-DFMILIB_BUILD_WITH_STATIC_RTLIB:BOOLEAN=${FMUCHK_BUILD_WITH_STATIC_RTLIB}
+		)
+endif()
 
 ExternalProject_Add(
 	fmil
@@ -112,26 +143,28 @@ add_custom_command(OUTPUT "${FMUCHK_BUILD}/FMIL/install/include/fmilib.h"
 # Now create the checker executable
 set(SOURCE 
 	${FMUCHK_HOME}/src/Common/fmuChecker.c
+	${FMUCHK_HOME}/src/FMI1/fmi1_check.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_me_sim.c
+	${FMUCHK_HOME}/src/FMI1/fmi1_cs_sim.c
 	)
 set(HEADERS 
 	${FMUCHK_BUILD}/FMIL/install/include/fmilib.h
-	${FMUCHK_HOME}/include/Common/fmuChecker.h)
+	${FMUCHK_HOME}/include/fmuChecker.h)
 
 include_directories(
 	${FMUCHK_BUILD}/FMIL/install/include/
 	include/Common/
 	include)
 
-add_executable(fmuCheck ${SOURCE} ${HEADERS})
-target_link_libraries(fmuCheck fmilib)
+add_executable(${fmuCheck} ${SOURCE} ${HEADERS})
+target_link_libraries(${fmuCheck} fmilib)
 
 if(UNIX) 
 	message(STATUS "Adding -ldl to the linker")
-	target_link_libraries(fmuCheck dl)
+	target_link_libraries(${fmuCheck} dl)
 endif(UNIX)
 
-install(TARGETS fmuCheck DESTINATION ${FMUCHK_INSTALL_PREFIX})
+install(TARGETS ${fmuCheck} DESTINATION ${FMUCHK_INSTALL_PREFIX})
 
 # tests
 file(TO_CMAKE_PATH ${FMUCHK_TEST_FMUS_DIR} FMUCHK_TEST_FMUS_DIR_NORMALIZED)
@@ -157,25 +190,25 @@ add_test(
 
 set(TEST_COMMAND_LINE_PARSING OFF)
 if(TEST_COMMAND_LINE_PARSING)
-	add_test(check_command_line_parsing_0 fmuCheck )
-	add_test(check_command_line_parsing_1 fmuCheck -x -h a.fmu )
+	add_test(check_command_line_parsing_0 ${fmuCheck} )
+	add_test(check_command_line_parsing_1 ${fmuCheck} -x -h a.fmu )
 	set_tests_properties(check_command_line_parsing_1 PROPERTIES WILL_FAIL TRUE)
-	add_test(check_command_line_parsing_2 fmuCheck -xx -h a.fmu )
+	add_test(check_command_line_parsing_2 ${fmuCheck} -xx -h a.fmu )
 	set_tests_properties(check_command_line_parsing_2 PROPERTIES WILL_FAIL TRUE)
-	add_test(check_command_line_parsing_3 fmuCheck -l 5 -e a.fmu )
+	add_test(check_command_line_parsing_3 ${fmuCheck} -l 5 -e a.fmu )
 	set_tests_properties(check_command_line_parsing_3 PROPERTIES WILL_FAIL TRUE)
-	add_test(check_command_line_parsing_4 fmuCheck -l 5  )
+	add_test(check_command_line_parsing_4 ${fmuCheck} -l 5  )
 	set_tests_properties(check_command_line_parsing_4 PROPERTIES WILL_FAIL TRUE)
-	add_test(check_command_line_parsing_5 fmuCheck -l 6 a.fmu -x  )
+	add_test(check_command_line_parsing_5 ${fmuCheck} -l 6 a.fmu -x  )
 	set_tests_properties(check_command_line_parsing_5 PROPERTIES WILL_FAIL TRUE)
-	add_test(check_command_line_parsing_6 fmuCheck -l 6 -n -1 a.fmu  )
+	add_test(check_command_line_parsing_6 ${fmuCheck} -l 6 -n -1 a.fmu  )
 	set_tests_properties(check_command_line_parsing_6 PROPERTIES WILL_FAIL TRUE)
-	add_test(check_command_line_parsing_7 fmuCheck -l 6 -n 10 -e 1 -s -1 a.fmu  )
+	add_test(check_command_line_parsing_7 ${fmuCheck} -l 6 -n 10 -e 1 -s -1 a.fmu  )
 	set_tests_properties(check_command_line_parsing_7 PROPERTIES WILL_FAIL TRUE)
 endif()
 
 foreach(fmu ${ALL_TEST_FMUS})
 	string(REPLACE "/" "_" testname "check_${fmu}")
 	string(REPLACE ":" "_" testname ${testname})
-	add_test(${testname} fmuCheck -t ${FMUCHK_BUILD}/tmpfolder -e 0.01 -l 6 -o ${FMUCHK_BUILD}/tmpfolder/${testname}.csv ${fmu} )
+	add_test(${testname} ${fmuCheck} -t ${FMUCHK_BUILD}/tmpfolder -l 6 -o ${FMUCHK_BUILD}/tmpfolder/${testname}.csv ${fmu} )
 endforeach(fmu)

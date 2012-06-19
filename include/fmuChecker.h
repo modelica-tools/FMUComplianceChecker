@@ -102,6 +102,12 @@ void clear_fmu_check_data(fmu_check_data_t* cdata);
 /** Check an FMI 1.0 FMU */
 jm_status_enu_t fmi1_check(fmu_check_data_t* cdata);
 
+/** Simulate an FMI 1.0 ME FMU */
+jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata);
+
+/** Simulate an FMI 1.0 CS FMU */
+jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata);
+
 jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata);
 
 jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time);

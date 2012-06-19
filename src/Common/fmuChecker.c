@@ -311,6 +311,12 @@ int main(int argc, char *argv[])
 
 	clear_fmu_check_data(&cdata);
 
+	if(allocated_mem_blocks)  {
+		jm_log_error(callbacks,fmu_checker_module,
+			"There was a definite memory leak. At least %d blocks were not freed", 
+			allocated_mem_blocks);
+	}
+
 	if(status == jm_status_success) {
 		if(cdata.status >= jm_log_level_info)
 			jm_log_info(callbacks,fmu_checker_module, "FMU seems to be OK since you got this far =)!");
