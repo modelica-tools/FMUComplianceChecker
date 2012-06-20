@@ -1,0 +1,42 @@
+File: BUILD-FMUChecker.txt
+Build instructions for FMI Compliance Checher (FMUChecker) application.
+
+FMUChecker build system utilizes CMake (see <http://www.cmake.org/>)
+to generate the native build scripts for the application.
+It is recommended to use "cmake-gui" on Windows or "ccmake" to configure
+the build. The primary target of the library build script is a command-line
+executable:  <prefix>/bin/fmuChecket.<platform>[.extention]
+
+Note that FMUChecker depends on FMI Library that needs to be downloaded
+separately from <http://www.jmodelica.org>
+
+The following FMUChecker specific build configuration options are provided:
+
+FMUCHK_INSTALL_PREFIX - Prefix prepended to install directories. 
+	Default: <build_dir>/../install
+	
+FMUCHK_FMIL_HOME_DIR - Path to the directory with FMIL sources. 
+	Default: <source_dir>/ThirdParty/FMIL
+	
+FMUCHK_FMI_STANDARD_HEADERS  - Path to the FMI standard headers directory. 
+	Leave empty to use the headers from FMIL, which is the default.
+	Header for specific standards files are expected in subdirectories 
+	FMI1, FMI2, etc.
+	
+FMUCHK_ENABLE_LOG_LEVEL_DEBUG - Enable log level 'debug'. If the option 
+   is of then the debug level is not compiled in. Default: OFF
+   
+FMUCHK_TEST_FMUS_DIR - Directory with FMUs to be used in tests (checker 
+	will run for each FMU). Output files can be found in <build>/TestOutput/
+	Default: ${FMUCHK_HOME}/TestFMUs.
+	
+FMUCHK_BUILD_WITH_STATIC_RTLIB - Use static run-time libraries (/MT or 
+	/MTd linker flags. Default: ON. Only available for Microsoft Visual
+	Studio projects.
+
+FMUCHK_FMI_PLATFORM - Defines the subdirectory within FMU where binaries 
+	should be searched, e.g., win32. Default: detected automatically
+	for win32/64, linux32/64, darwin32/64. Overriding the default
+	value normally requires modification to compiler and linker flags
+	to get a consistent build. May be used to build 32-bit binary
+	on a 64-bit system.

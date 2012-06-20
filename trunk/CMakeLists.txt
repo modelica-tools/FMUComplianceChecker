@@ -1,3 +1,13 @@
+#
+#    Copyright (C) 2012 Modelon AB <http://www.modelon.com>
+#
+#	You should have received a copy of the LICENCE-FMUChecker.txt
+#   along with this program. If not, contact Modelon AB.
+#
+
+#   File: CMakeLists.txt
+#   Configuration and build script for the FMUChecker application.
+
 cmake_minimum_required (VERSION 2.8)
 project (FMIComplianceChecker)
 
@@ -5,11 +15,11 @@ set(FMUCHK_HOME ${FMIComplianceChecker_SOURCE_DIR})
 set(FMUCHK_BUILD ${FMIComplianceChecker_BINARY_DIR})
 
 # User configuration options and parameters
-SET(FMUCHK_INSTALL_PREFIX ${FMUCHK_BUILD}/../install CACHE PATH "Prefix prepended to install directories")
-set(FMUCHK_FMIL_HOME_DIR  ${FMUCHK_HOME}/ThirdParty/FMIL CACHE PATH "Path to the FMIL sources (https://svn.jmodelica.org/FMILibrary/trunk)" )
-set(FMUCHK_FMI_STANDARD_HEADERS  ${FMUCHK_FMIL_HOME_DIR}/ThirdParty/FMI/standard32 CACHE PATH "Path to the FMI standard headers dir" )
+set(FMUCHK_INSTALL_PREFIX ${FMUCHK_BUILD}/../install CACHE PATH "Prefix prepended to install directories.")
+set(FMUCHK_FMIL_HOME_DIR ${FMUCHK_HOME}/ThirdParty/FMIL CACHE PATH "Path to the directory with FMIL sources." )
+set(FMUCHK_FMI_STANDARD_HEADERS  "" CACHE PATH "Path to the FMI standard headers directory. Leave empty to use the headers from FMIL." )
 option(FMUCHK_ENABLE_LOG_LEVEL_DEBUG "Enable log level 'debug'. If the option is of then the debug level is not compiled in." OFF)
-set(FMUCHK_TEST_FMUS_DIR ${FMUCHK_HOME}/TestFMUs CACHE PATH "Directory with FMUs to be used in tests (checker will run for each FMU)")
+set(FMUCHK_TEST_FMUS_DIR ${FMUCHK_HOME}/TestFMUs CACHE PATH "Directory with FMUs to be used in tests (checker will run for each FMU).")
 if(MSVC)
 	option (FMUCHK_BUILD_WITH_STATIC_RTLIB "Use static run-time libraries (/MT or /MTd linker flags)" ON)
 endif()
@@ -67,14 +77,35 @@ if(MSVC)
 	endforeach(flag_var)	
 endif()
 
+if("${FMUCHK_FMIL_HOME_DIR}" STREQUAL "${FMUCHK_HOME}/ThirdParty/FMIL")
+set(download_fmil_message
+"\nYou are using the default settings for FMUCHK_FMIL_HOME_DIR.
+Please, download FMI Library sources from http://www.jmodelica.org.
+Then set the FMUCHK_FMIL_HOME_DIR to point to the download location and reconfigure.
+If using command line run:
+	cmake -DFMUCHK_FMIL_HOME_DIR=<FMIL sources> <FMUChecker source dir>
+Alternatively, use cmake-gui or ccmake to set the path.
+For the list of configuration options see:
+${FMUCHK_HOME}/BUILD-FMUChecker.txt")
+
+message(FATAL_ERROR "${download_fmil_message}")
+endif()
+
+set(FMI_STANDARD_HEADERS_DIR ${FMUCHK_FMI_STANDARD_HEADERS})
+string(REPLACE " " "" tmp "${FMI_STANDARD_HEADERS_DIR}")
+string(REPLACE "\t" "" tmp "${tmp}")
+if("${tmp}" STREQUAL "")
+	set(FMI_STANDARD_HEADERS_DIR "${FMUCHK_FMIL_HOME_DIR}/ThirdParty/FMI/standard32")
+endif()
+message(STATUS "Will use standard headers from:\n ${FMI_STANDARD_HEADERS_DIR}")
 # Add FMIL as imported library
 include(ExternalProject)
 
 set(FMIL_SETTINGS
 	-DFMILibrary_SOURCE_DIR:PATH="${FMUCHK_FMIL_HOME_DIR}"
 	-DFMILibrary_BINARY_DIR:PATH="${FMUCHK_BUILD}/FMIL/build"
-	-DFMILIB_INSTALL_PREFIX:PATH=${FMUCHK_BUILD}/FMIL/install
-	-DFMILIB_FMI_STANDARD_HEADERS:PATH=${FMUCHK_FMI_STANDARD_HEADERS}
+	-DFMILIB_INSTALL_PREFIX:PATH="${FMUCHK_BUILD}/FMIL/install"
+	-DFMILIB_FMI_STANDARD_HEADERS:PATH="${FMI_STANDARD_HEADERS_DIR}"
 	-DFMILIB_FMI_PLATFORM:STRING=${FMUCHK_FMI_PLATFORM}
 	-DFMILIB_DEFAULT_BUILD_TYPE_RELEASE:BOOLEAN=ON
 	-DFMILIB_BUILD_STATIC_LIB:BOOLEAN=ON
@@ -82,7 +113,7 @@ set(FMIL_SETTINGS
 	-DFMILIB_INSTALL_SUBLIBS:BOOLEAN=OFF
 	-DFMILIB_GENERATE_DOXYGEN_DOC:BOOLEAN=OFF
 	-DFMILIB_BUILD_TESTS:BOOLEAN=ON
-	-DFMILIB_GENERATE_BUILD_STAMP:BOOLEAN=ON
+	-DFMILIB_GENERATE_BUILD_STAMP:BOOLEAN=OFF
 	-DFMILIB_ENABLE_LOG_LEVEL_DEBUG:BOOLEAN=${FMUCHK_ENABLE_LOG_LEVEL_DEBUG}
 	-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 	-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}
@@ -177,7 +208,8 @@ set(ALL_TEST_FMUS
 
 ENABLE_TESTING()
 
-file(MAKE_DIRECTORY ${FMUCHK_BUILD}/tmpfolder) 
+set(TEST_OUT_DIR ${FMUCHK_BUILD}/TestOutput)
+file(MAKE_DIRECTORY ${TEST_OUT_DIR}) 
 
 add_test(NAME Test_FMIL
 		WORKING_DIRECTORY ${FMUCHK_BUILD}/FMIL/build
@@ -195,7 +227,7 @@ if(TEST_COMMAND_LINE_PARSING)
 	set_tests_properties(check_command_line_parsing_1 PROPERTIES WILL_FAIL TRUE)
 	add_test(check_command_line_parsing_2 ${fmuCheck} -xx -h a.fmu )
 	set_tests_properties(check_command_line_parsing_2 PROPERTIES WILL_FAIL TRUE)
-	add_test(check_command_line_parsing_3 ${fmuCheck} -l 5 -e a.fmu )
+	add_test(check_command_line_parsing_3 ${fmuCheck} -l 5 -s a.fmu )
 	set_tests_properties(check_command_line_parsing_3 PROPERTIES WILL_FAIL TRUE)
 	add_test(check_command_line_parsing_4 ${fmuCheck} -l 5  )
 	set_tests_properties(check_command_line_parsing_4 PROPERTIES WILL_FAIL TRUE)
@@ -203,12 +235,12 @@ if(TEST_COMMAND_LINE_PARSING)
 	set_tests_properties(check_command_line_parsing_5 PROPERTIES WILL_FAIL TRUE)
 	add_test(check_command_line_parsing_6 ${fmuCheck} -l 6 -n -1 a.fmu  )
 	set_tests_properties(check_command_line_parsing_6 PROPERTIES WILL_FAIL TRUE)
-	add_test(check_command_line_parsing_7 ${fmuCheck} -l 6 -n 10 -e 1 -s -1 a.fmu  )
+	add_test(check_command_line_parsing_7 ${fmuCheck} -l 6 -n 10 -s 1 -c -1 a.fmu  )
 	set_tests_properties(check_command_line_parsing_7 PROPERTIES WILL_FAIL TRUE)
 endif()
 
 foreach(fmu ${ALL_TEST_FMUS})
 	string(REPLACE "/" "_" testname "check_${fmu}")
 	string(REPLACE ":" "_" testname ${testname})
-	add_test(${testname} ${fmuCheck} -t ${FMUCHK_BUILD}/tmpfolder -l 6 -o ${FMUCHK_BUILD}/tmpfolder/${testname}.csv ${fmu} )
+	add_test(${testname} ${fmuCheck} -t ${TEST_OUT_DIR} -l 6 -o ${TEST_OUT_DIR}/${testname}.csv -e ${TEST_OUT_DIR}/${testname}.log ${fmu} )
 endforeach(fmu)

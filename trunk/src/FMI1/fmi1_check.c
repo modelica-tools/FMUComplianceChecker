@@ -1,3 +1,14 @@
+/*
+    Copyright (C) 2012 Modelon AB <http://www.modelon.com>
+
+	You should have received a copy of the LICENCE-FMUChecker.txt
+    along with this program. If not, contact Modelon AB.
+*/
+/**
+	\file fmi1_check.c
+	Driver for FMI 1.0 checking and IO routines.
+*/
+
 #include <errno.h>
 
 #include <fmuChecker.h>

@@ -1,17 +1,12 @@
 /*
-    Copyright (C) 2012 Modelon AB
+    Copyright (C) 2012 Modelon AB <http://www.modelon.com>
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, version 3 of the License.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the LICENCE-FMUChecker.txt
+    along with this program. If not, contact Modelon AB.
+*/
+/**
+	\file fmuChecker.c
+	Main function and command line options handling of the FMUChecker application.
 */
 
 #include <stdio.h>
@@ -62,22 +57,24 @@ void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_le
 	if(log_level < cdata->status ) 
 		 cdata->status = log_level;
 	
-	fprintf(stderr, "[%s][%s] %s\n", jm_log_level_to_string(log_level), module, message);
+	fprintf(cdata->log_file, "[%s][%s] %s\n", jm_log_level_to_string(log_level), module, message);
 
 }
 
 
-void print_usage() {
-	printf("FMI compliance checker. Usage: fmuCheck [options] <model.fmu>\n"
+void print_usage( ) {
+	printf("FMI compliance checker.\n"
+		"Usage: fmuCheck." FMI_PLATFORM " [options] <model.fmu>\n\n"
 		"Options:\n\n"
-		"-x\t\t Check XML and stop, default is to load the DLL and simulate\n\t\t after this.\n\n"
-		"-e <stopTime>\t Simulation stop time, default is to use information from\n\t\t'DefaultExperiment' as specified in the model description XML.\n\n"
+		"-c <separator>\t Separator character to be used in CSV output. Default is ';'.\n\n"
+		"-e <filename>\t Error log file name. Default is to use standard error.\n\n"
 		"-h <stepSize>\t Step size to use in forward Euler. Takes preference over '-n'.\n\n"
-		"-n <num_steps>\t Number of steps in forward Euler until time end.\n\t\t Default is 100 steps simulation between start and stop time.\n\n"
 		"-l <log level>\t Log level: 0 - no logging, 1 - fatal errors only,\n\t\t 2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.\n\n"
-		"-s <separator>\t Separator character to be used in CSV output. Default is ';'.\n\n"
+		"-n <num_steps>\t Number of steps in forward Euler until time end.\n\t\t Default is 100 steps simulation between start and stop time.\n\n"
 		"-o <filename>\t Output file name. Default is to use standard output.\n\n"
-		"-t <tmp-dir>\t Temporary dir to use for unpacking the FMU.\n\t\t Default is to create an unique temporary dir.\n\n"
+		"-s <stopTime>\t Simulation stop time, default is to use information from\n\t\t'DefaultExperiment' as specified in the model description XML.\n\n"
+		"-t <tmp-dir>\t Temporary dir to use for unpacking the FMU.\n\t\t Default is to use system-wide directory, e.g., C:\\Temp.\n\n"
+		"-x\t\t Check XML and stop, default is to load the DLL and simulate\n\t\t after this.\n\n"
 		);
 }
 
@@ -100,7 +97,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		case 'x':
 			cdata->do_simulate_flg = 0;
 			break;
-		case 'e': {
+		case 's': {
 			/* <stopTime>\t Simulation stop time, default is to use information from 'DefaultExperiment'\n" */
 			double endTime;
 
@@ -145,9 +142,15 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			}
 			cdata->callbacks.log_level = (jm_log_level_enu_t)log_level;
 			jm_log_verbose(&cdata->callbacks,fmu_checker_module,"Setting log level to [%s]", jm_log_level_to_string((jm_log_level_enu_t)log_level));
+#ifndef FMILIB_ENABLE_LOG_LEVEL_DEBUG
+			if(log_level == jm_log_level_debug) {
+				jm_log_warning(&cdata->callbacks,fmu_checker_module,"This binary is build without debug log messages."
+					"\n Reconfigure with FMUCHK_ENABLE_LOG_LEVEL_DEBUG=ON and rebuild to enable debug level logging");
+			}
+#endif
 			break;
 		}
-		case 's': {/*csvSeparator>\t Separator character to be used. Default is ';'.\n"*/
+		case 'c': {/*csvSeparator>\t Separator character to be used. Default is ';'.\n"*/
 			i++;
 			option = argv[i];
 			if(option[1] != 0) {
@@ -160,6 +163,11 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		case 'o': {/*output-file-name>\t Default is to print output to standard output.\n"*/
 			i++;
 			cdata->output_file_name = argv[i];
+			break;
+				  }
+		case 'e': {/*log-file-name>\t Default is to print log to standard error.\n"*/
+			i++;
+			cdata->log_file_name = argv[i];
 			break;
 				  }
 		case 't': {/*tmp-dir>\t Temporary dir to use for unpacking the fmu.\n\t Default is to create an unique temporary dir.\n"*/
@@ -204,7 +212,16 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			do_exit(1);
 		}
 	}
-	if(cdata->do_simulate_flg && cdata->output_file_name) {
+	if(cdata->log_file_name) {
+		cdata->log_file = fopen(cdata->log_file_name, "w");
+		if(!cdata->log_file) {
+			cdata->log_file = stderr;
+			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not open %s for writing", cdata->log_file_name);
+			clear_fmu_check_data(cdata);
+			do_exit(1);
+		}
+	}
+	if(cdata->output_file_name) {
 		cdata->out_file = fopen(cdata->output_file_name, "w");
 		if(!cdata->out_file) {
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not open %s for writing", cdata->output_file_name);
@@ -240,6 +257,8 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->CSV_separator = ';';
 	cdata->output_file_name = 0;
 	cdata->out_file = stdout;
+	cdata->log_file_name = 0;
+	cdata->log_file = stderr;
 	cdata->do_simulate_flg = 1;
 
 	cdata->version = fmi_version_unknown_enu;
@@ -269,6 +288,10 @@ void clear_fmu_check_data(fmu_check_data_t* cdata) {
 	if(cdata->vl) {
 		fmi1_import_free_variable_list(cdata->vl);
 		cdata->vl = 0;
+	}
+	if(cdata->log_file && (cdata->log_file != stderr)) {
+		fclose(cdata->log_file);
+		cdata->log_file = stderr;
 	}
 }
 
@@ -331,5 +354,3 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
-

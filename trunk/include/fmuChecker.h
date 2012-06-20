@@ -1,17 +1,12 @@
 /*
-    Copyright (C) 2012 Modelon AB
+    Copyright (C) 2012 Modelon AB <http://www.modelon.com>
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, version 3 of the License.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the LICENCE-FMUChecker.txt
+    along with this program. If not, contact Modelon AB.
+*/
+/**
+	\file fmuChecker.h
+	Header file for fmuChecker application.
 */
 
 #ifndef FMUCHECKER_H_
@@ -76,6 +71,11 @@ typedef struct fmu_check_data_t {
 	char* output_file_name;
 	/** Output file stream */
 	FILE* out_file;
+	/** Name of the log file (NULL is stderr)*/
+	char* log_file_name;
+	/** Log file stream */
+	FILE* log_file;
+
 	/** Should simulation be done (or only XML checking) */
 	int do_simulate_flg;
 

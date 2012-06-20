@@ -1,3 +1,13 @@
+/*
+    Copyright (C) 2012 Modelon AB <http://www.modelon.com>
+
+	You should have received a copy of the LICENCE-FMUChecker.txt
+    along with this program. If not, contact Modelon AB.
+*/
+/**
+	\file fmi1_cs_sim.c
+	Simulation loop for the FMI 1.0 Co-simulation FMUs
+*/
 #include <fmuChecker.h>
 #include <fmilib.h>
 
