@@ -16,7 +16,8 @@ set(FMUCHK_BUILD ${FMIComplianceChecker_BINARY_DIR})
 
 # User configuration options and parameters
 set(FMUCHK_INSTALL_PREFIX ${FMUCHK_BUILD}/../install CACHE PATH "Prefix prepended to install directories.")
-set(FMUCHK_FMIL_HOME_DIR ${FMUCHK_HOME}/ThirdParty/FMIL CACHE PATH "Path to the directory with FMIL sources." )
+set(no_fmil "No FMIL specified")
+set(FMUCHK_FMIL_HOME_DIR "${no_fmil}" CACHE PATH "Path to the directory with FMIL sources (directory with CMakeLists.txt)." )
 set(FMUCHK_FMI_STANDARD_HEADERS  "" CACHE PATH "Path to the FMI standard headers directory. Leave empty to use the headers from FMIL." )
 option(FMUCHK_ENABLE_LOG_LEVEL_DEBUG "Enable log level 'debug'. If the option is of then the debug level is not compiled in." OFF)
 set(FMUCHK_TEST_FMUS_DIR ${FMUCHK_HOME}/TestFMUs CACHE PATH "Directory with FMUs to be used in tests (checker will run for each FMU).")
@@ -77,13 +78,14 @@ if(MSVC)
 	endforeach(flag_var)	
 endif()
 
-if("${FMUCHK_FMIL_HOME_DIR}" STREQUAL "${FMUCHK_HOME}/ThirdParty/FMIL")
+if("${FMUCHK_FMIL_HOME_DIR}" STREQUAL "${no_fmil}")
 set(download_fmil_message
 "\nYou are using the default settings for FMUCHK_FMIL_HOME_DIR.
 Please, download FMI Library sources from http://www.jmodelica.org.
 Then set the FMUCHK_FMIL_HOME_DIR to point to the download location and reconfigure.
 If using command line run:
 	cmake -DFMUCHK_FMIL_HOME_DIR=<FMIL sources> <FMUChecker source dir>
+<FMIL sources> should point to the directory with FMILs CMakeLists.txt.
 Alternatively, use cmake-gui or ccmake to set the path.
 For the list of configuration options see:
 ${FMUCHK_HOME}/BUILD-FMUChecker.txt")
@@ -95,17 +97,17 @@ set(FMI_STANDARD_HEADERS_DIR ${FMUCHK_FMI_STANDARD_HEADERS})
 string(REPLACE " " "" tmp "${FMI_STANDARD_HEADERS_DIR}")
 string(REPLACE "\t" "" tmp "${tmp}")
 if("${tmp}" STREQUAL "")
-	set(FMI_STANDARD_HEADERS_DIR "${FMUCHK_FMIL_HOME_DIR}/ThirdParty/FMI/standard32")
+	set(FMI_STANDARD_HEADERS_DIR ${FMUCHK_FMIL_HOME_DIR}/ThirdParty/FMI/standard32)
 endif()
 message(STATUS "Will use standard headers from:\n ${FMI_STANDARD_HEADERS_DIR}")
 # Add FMIL as imported library
 include(ExternalProject)
 
 set(FMIL_SETTINGS
-	-DFMILibrary_SOURCE_DIR:PATH="${FMUCHK_FMIL_HOME_DIR}"
-	-DFMILibrary_BINARY_DIR:PATH="${FMUCHK_BUILD}/FMIL/build"
-	-DFMILIB_INSTALL_PREFIX:PATH="${FMUCHK_BUILD}/FMIL/install"
-	-DFMILIB_FMI_STANDARD_HEADERS:PATH="${FMI_STANDARD_HEADERS_DIR}"
+	-DFMILibrary_SOURCE_DIR:PATH=${FMUCHK_FMIL_HOME_DIR}
+	-DFMILibrary_BINARY_DIR:PATH=${FMUCHK_BUILD}/FMIL/build
+	-DFMILIB_INSTALL_PREFIX:PATH=${FMUCHK_BUILD}/FMIL/install
+	-DFMILIB_FMI_STANDARD_HEADERS:PATH=${FMI_STANDARD_HEADERS_DIR}
 	-DFMILIB_FMI_PLATFORM:STRING=${FMUCHK_FMI_PLATFORM}
 	-DFMILIB_DEFAULT_BUILD_TYPE_RELEASE:BOOLEAN=ON
 	-DFMILIB_BUILD_STATIC_LIB:BOOLEAN=ON
@@ -211,14 +213,14 @@ ENABLE_TESTING()
 set(TEST_OUT_DIR ${FMUCHK_BUILD}/TestOutput)
 file(MAKE_DIRECTORY ${TEST_OUT_DIR}) 
 
-add_test(NAME Test_FMIL
-		WORKING_DIRECTORY ${FMUCHK_BUILD}/FMIL/build
-		COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION>
-		)
-
 add_test(
 	NAME Build_before_test
 	COMMAND "${CMAKE_COMMAND}" --build ${FMUCHK_BUILD} --config $<CONFIGURATION>)
+
+add_test(
+	NAME Test_FMIL
+	WORKING_DIRECTORY ${FMUCHK_BUILD}/FMIL/build
+	COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION>)
 
 set(TEST_COMMAND_LINE_PARSING OFF)
 if(TEST_COMMAND_LINE_PARSING)
