@@ -15,8 +15,9 @@ The following FMUChecker specific build configuration options are provided:
 FMUCHK_INSTALL_PREFIX - Prefix prepended to install directories. 
 	Default: <build_dir>/../install
 	
-FMUCHK_FMIL_HOME_DIR - Path to the directory with FMIL sources. 
-	Default: <source_dir>/ThirdParty/FMIL
+FMUCHK_FMIL_HOME_DIR - Path to the directory with FMIL sources
+	downloaded from <http://www.jmodelica.org>. 
+	Default: "No FMIL"
 	
 FMUCHK_FMI_STANDARD_HEADERS  - Path to the FMI standard headers directory. 
 	Leave empty to use the headers from FMIL, which is the default.
