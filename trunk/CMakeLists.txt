@@ -27,6 +27,12 @@ endif()
 
 set(FMUCHK_FMI_PLATFORM_DOC "FMI platform defines the subdirectory within FMU where binary is located")
 set(FMUCHK_FMI_PLATFORM ”unknown” CACHE STRING ${FMUCHK_FMI_PLATFORM_DOC})
+
+IF(NOT CMAKE_BUILD_TYPE)
+	SET(CMAKE_BUILD_TYPE "Release")
+	message(STATUS "Setting build type to ${CMAKE_BUILD_TYPE}")
+ENDIF()
+
 if(FMUCHK_FMI_PLATFORM MATCHES ”unknown”)
 	if(CMAKE_HOST_WIN32) #Set to true when the host system is Windows and on cygwin.
 		set(FMI_PLATFORM win)
@@ -167,12 +173,6 @@ set_target_properties(
 
 add_dependencies(fmilib fmil)
 
-# Add a command that fakes generation of fmilib.h just to get dependencies right
-add_custom_command(OUTPUT "${FMUCHK_BUILD}/FMIL/install/include/fmilib.h"
-                     COMMAND ${CMAKE_COMMAND} -E touch_nocreate "${FMUCHK_BUILD}/FMIL/install/include/fmilib.h"
-                     DEPENDS fmil
-)
-
 # Now create the checker executable
 set(SOURCE 
 	${FMUCHK_HOME}/src/Common/fmuChecker.c
@@ -181,7 +181,6 @@ set(SOURCE
 	${FMUCHK_HOME}/src/FMI1/fmi1_cs_sim.c
 	)
 set(HEADERS 
-	${FMUCHK_BUILD}/FMIL/install/include/fmilib.h
 	${FMUCHK_HOME}/include/fmuChecker.h)
 
 include_directories(
