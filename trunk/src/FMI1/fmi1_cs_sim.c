@@ -18,7 +18,6 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 	jm_callbacks* cb = &cdata->callbacks;
 
 	fmi1_import_t* fmu = cdata->fmu1;
-	fmi1_string_t instanceName = "Test CS model instance";
 	fmi1_string_t fmuGUID;
 	fmi1_string_t fmuLocation = "";
 	fmi1_string_t mimeType = "";
@@ -44,7 +43,8 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 
 	fmuGUID = fmi1_import_get_GUID(fmu);
 
-	jmstatus = fmi1_import_instantiate_slave(fmu, instanceName, fmuLocation, mimeType, timeout, visible, interactive);
+	cdata->instanceName = "Test FMI 1.0 CS";
+	jmstatus = fmi1_import_instantiate_slave(fmu, cdata->instanceName, fmuLocation, mimeType, timeout, visible, interactive);
 	if (jmstatus == jm_status_error) {
 		jm_log_fatal(cb, fmu_checker_module, "Could not instantiate the model");
 		return jm_status_error;

@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <errno.h>
+#include <assert.h>
 
 // #include <config_test.h>
 #include <JM/jm_portability.h>
@@ -53,12 +55,27 @@ void  check_free(void* obj) {
 
 void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_level, jm_string message) {
 	fmu_check_data_t* cdata = (fmu_check_data_t*)c->context;
+	int ret;
 
-	if(log_level < cdata->status ) 
-		 cdata->status = log_level;
+	if(log_level == jm_log_level_warning)
+		cdata->num_warnings++;
+	else if(log_level == jm_log_level_error)
+		cdata->num_errors++;
+	else if(log_level == jm_log_level_fatal)
+		cdata->num_fatal++;
 	
-	fprintf(cdata->log_file, "[%s][%s] %s\n", jm_log_level_to_string(log_level), module, message);
+	if(log_level)
+		ret = fprintf(cdata->log_file, "[%s][%s] %s\n", jm_log_level_to_string(log_level), module, message);
+	else
+		ret = fprintf(cdata->log_file, "%s\n", message);
 
+	if(ret <= 0) {
+		fclose(cdata->log_file);
+		cdata->log_file = stderr;
+		fprintf(stderr, "[%s][%s] %s\n", jm_log_level_to_string(log_level), module, message);
+		fprintf(stderr, "[%s][%s] %s\n", jm_log_level_to_string(jm_log_level_fatal), module, "Error writing to the log file");
+		cdata->num_fatal++;
+	}
 }
 
 
@@ -141,13 +158,6 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 				do_exit(1);
 			}
 			cdata->callbacks.log_level = (jm_log_level_enu_t)log_level;
-			jm_log_verbose(&cdata->callbacks,fmu_checker_module,"Setting log level to [%s]", jm_log_level_to_string((jm_log_level_enu_t)log_level));
-#ifndef FMILIB_ENABLE_LOG_LEVEL_DEBUG
-			if(log_level == jm_log_level_debug) {
-				jm_log_warning(&cdata->callbacks,fmu_checker_module,"This binary is build without debug log messages."
-					"\n Reconfigure with FMUCHK_ENABLE_LOG_LEVEL_DEBUG=ON and rebuild to enable debug level logging");
-			}
-#endif
 			break;
 		}
 		case 'c': {/*csvSeparator>\t Separator character to be used. Default is ';'.\n"*/
@@ -186,6 +196,37 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		do_exit(1);
 	}
 	cdata->FMUPath = argv[i];
+
+	if(cdata->log_file_name) {
+		cdata->log_file = fopen(cdata->log_file_name, "w");
+		if(!cdata->log_file) {
+			cdata->log_file = stderr;
+			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not open %s for writing", cdata->log_file_name);
+			clear_fmu_check_data(cdata, 1);
+			do_exit(1);
+		}
+	}
+	{
+		jm_log_level_enu_t log_level = cdata->callbacks.log_level;
+		jm_log_verbose(&cdata->callbacks,fmu_checker_module,"Setting log level to [%s]", jm_log_level_to_string(log_level));
+#ifndef FMILIB_ENABLE_LOG_LEVEL_DEBUG
+		if(log_level == jm_log_level_debug) {
+			jm_log_verbose(&cdata->callbacks,fmu_checker_module,"This binary is build without debug log messages."
+			"\n Reconfigure with FMUCHK_ENABLE_LOG_LEVEL_DEBUG=ON and rebuild to enable debug level logging");
+		}
+	}
+#endif
+
+	{
+		FILE* tryFMU = fopen(cdata->FMUPath, "r");
+		if(tryFMU == 0) {
+			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Cannot open FMU file (%s)", strerror(errno));
+			clear_fmu_check_data(cdata, 1);
+			do_exit(1);
+		}
+		fclose(tryFMU);
+	}
+
 	if(!cdata->temp_dir) {
 		cdata->temp_dir = jm_get_system_temp_dir();
 		if(!cdata->temp_dir) cdata->temp_dir = "./";
@@ -194,7 +235,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		const char * tmpl = "/fmutmpXXXXXX";
 		size_t len;
 		len = strlen(cdata->temp_dir);
-		if((cdata->temp_dir[len-1] == tmpl[0]) || (cdata->temp_dir[len-1] == '/')) 
+		if((cdata->temp_dir[len-1] == tmpl[0]) || (cdata->temp_dir[len-1] == '/') || (cdata->temp_dir[len-1] == FMI_FILE_SEP[0]))
 			tmpl++;
 		cdata->tmpPath = (char*)cdata->callbacks.malloc(strlen(cdata->temp_dir) + strlen(tmpl) + 1);
 		if(!cdata->tmpPath) {
@@ -212,20 +253,11 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			do_exit(1);
 		}
 	}
-	if(cdata->log_file_name) {
-		cdata->log_file = fopen(cdata->log_file_name, "w");
-		if(!cdata->log_file) {
-			cdata->log_file = stderr;
-			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not open %s for writing", cdata->log_file_name);
-			clear_fmu_check_data(cdata);
-			do_exit(1);
-		}
-	}
 	if(cdata->output_file_name) {
 		cdata->out_file = fopen(cdata->output_file_name, "w");
 		if(!cdata->out_file) {
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not open %s for writing", cdata->output_file_name);
-			clear_fmu_check_data(cdata);
+			clear_fmu_check_data(cdata, 1);
 			do_exit(1);
 		}
 	}
@@ -235,7 +267,11 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->FMUPath = 0;
 	cdata->tmpPath = 0;
 	cdata->temp_dir = 0;
-	cdata->status = jm_log_level_info;
+
+	cdata->num_errors = 0;
+	cdata->num_warnings = 0;
+	cdata->num_fatal = 0;
+	cdata->num_fmu_messages = 0;
 
 	cdata->callbacks.malloc = check_malloc;
     cdata->callbacks.calloc = check_calloc;
@@ -250,6 +286,7 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->modelIdentifier = 0;
 	cdata->modelName = 0;
 	cdata->GUID = 0;
+	cdata->instanceName = 0;
 
 	cdata->stopTime = 0.0;
 	cdata->stepSize = 0.0;
@@ -266,9 +303,11 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->fmu1 = 0;
 	cdata->fmu1_kind = fmi1_fmu_kind_enu_unknown;
 	cdata->vl = 0;
+	assert(cdata_global_ptr == 0);
+	cdata_global_ptr = cdata;
 }
 
-void clear_fmu_check_data(fmu_check_data_t* cdata) {
+void clear_fmu_check_data(fmu_check_data_t* cdata, int close_log) {
 	if(cdata->fmu1) {
 		fmi1_import_free(cdata->fmu1);
 		cdata->fmu1 = 0;
@@ -289,12 +328,14 @@ void clear_fmu_check_data(fmu_check_data_t* cdata) {
 		fmi1_import_free_variable_list(cdata->vl);
 		cdata->vl = 0;
 	}
-	if(cdata->log_file && (cdata->log_file != stderr)) {
+	if(close_log && cdata->log_file && (cdata->log_file != stderr)) {
 		fclose(cdata->log_file);
 		cdata->log_file = stderr;
 	}
+	cdata_global_ptr = 0;
 }
 
+fmu_check_data_t* cdata_global_ptr = 0;
 
 int main(int argc, char *argv[])
 {
@@ -302,8 +343,7 @@ int main(int argc, char *argv[])
 	jm_status_enu_t status = jm_status_success;
 	jm_log_level_enu_t log_level = jm_log_level_info;
 	jm_callbacks* callbacks;
-	int i = 0;
-
+	int i = 0;	
 
 	init_fmu_check_data(&cdata);
 	callbacks = &cdata.callbacks;
@@ -327,12 +367,12 @@ int main(int argc, char *argv[])
 		status = fmi1_check(&cdata);
 		break;
 	default:
-		clear_fmu_check_data(&cdata);
+		clear_fmu_check_data(&cdata, 1);
 		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 is supported so far");
 		do_exit(1);
 	}
 
-	clear_fmu_check_data(&cdata);
+	clear_fmu_check_data(&cdata, 0);
 
 	if(allocated_mem_blocks)  {
 		jm_log_error(callbacks,fmu_checker_module,
@@ -340,17 +380,35 @@ int main(int argc, char *argv[])
 			allocated_mem_blocks);
 	}
 
-	if(status == jm_status_success) {
-		if(cdata.status >= jm_log_level_info)
-			jm_log_info(callbacks,fmu_checker_module, "FMU seems to be OK since you got this far =)!");
-		else if(cdata.status >= jm_log_level_warning)
-			jm_log_info(callbacks,fmu_checker_module, "FMU is mostly OK since you got this far =)!");
-		else 
-			jm_log_info(callbacks,fmu_checker_module, "No critical errors found since you got this far =)!");
+	jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "FMU check summary:");
+
+	jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "FMU reported:\n\t%u warning(s) and error(s)\nChecker reported:", cdata.num_fmu_messages);
+
+	if(callbacks->log_level < jm_log_level_error) {
+		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, 
+			"\tWarnings and non-critical errors were ignored (log level: %s)", jm_log_level_to_string( callbacks->log_level ));
+	}
+	else {
+		if(callbacks->log_level < jm_log_level_warning) {
+			jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, 
+				"\tWarnings were ignored (log level: %s)", jm_log_level_to_string( callbacks->log_level ));
+		}
+		else  
+			jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\t%u Warning(s)", cdata.num_warnings);
+		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\t%u Error(s)", cdata.num_errors);
+	}
+	if((status == jm_status_success) && (cdata.num_fatal == 0)) {
+		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\tNo fatal errors found");
+		if(cdata.log_file && (cdata.log_file != stderr))
+			fclose(cdata.log_file);
 		do_exit(0);
 	}
-	else
+	else {
+		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, 
+			"\tFatal error occured during processing");
+		if(cdata.log_file && (cdata.log_file != stderr))
+			fclose(cdata.log_file);
 		do_exit(1);
-
+	}
 	return 0;
 }

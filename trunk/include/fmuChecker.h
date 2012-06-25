@@ -46,8 +46,17 @@ typedef struct fmu_check_data_t {
 	/** Directory to be used for temporary files. Either user specified or system-wide*/
 	const char* temp_dir;
 
-	/** status used to record non-critical errors */
-	jm_log_level_enu_t status;
+	/** Counter for the warnings */
+	unsigned int num_warnings;
+
+	/** counter for the non-fatal errors */
+	unsigned int num_errors;
+
+	/** counter for the non-fatal errors */
+	unsigned int num_fatal;
+
+	/** counter for the non-info messages from FMU */
+	unsigned int num_fmu_messages;
 
 	/** FMIL callbacks*/
 	jm_callbacks callbacks;
@@ -58,6 +67,7 @@ typedef struct fmu_check_data_t {
 	const char* modelIdentifier;
 	const char* modelName;
 	const char*  GUID;
+	const char* instanceName;
 
 	/** Simulation stop time */
 	double stopTime;
@@ -90,6 +100,10 @@ typedef struct fmu_check_data_t {
 	fmi1_import_variable_list_t* vl;
 } fmu_check_data_t;
 
+
+/** Global pointer is necessary to support FMI 1.0 logging */
+extern fmu_check_data_t* cdata_global_ptr;
+
 /** parse command line options and set fields in cdata accordingly */
 void parse_options(int argc, char *argv[], fmu_check_data_t* cdata);
 
@@ -97,7 +111,10 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata);
 void init_fmu_check_data(fmu_check_data_t* cdata);
 
 /** Release allocated resources */ 
-void clear_fmu_check_data(fmu_check_data_t* cdata);
+void clear_fmu_check_data(fmu_check_data_t* cdata, int close_log);
+
+/** Logger function for FMI library */
+void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_level, jm_string message);
 
 /** Check an FMI 1.0 FMU */
 jm_status_enu_t fmi1_check(fmu_check_data_t* cdata);
