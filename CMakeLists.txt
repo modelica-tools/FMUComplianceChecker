@@ -87,7 +87,7 @@ endif()
 if("${FMUCHK_FMIL_HOME_DIR}" STREQUAL "${no_fmil}")
 set(download_fmil_message
 "\nYou are using the default settings for FMUCHK_FMIL_HOME_DIR.
-Please, download FMI Library sources from http://www.jmodelica.org.
+Please, download FMI Library sources from http://www.jmodelica.org/FMILibrary.
 Then set the FMUCHK_FMIL_HOME_DIR to point to the download location and reconfigure.
 If using command line run:
 	cmake -DFMUCHK_FMIL_HOME_DIR=<FMIL sources> <FMUChecker source dir>
@@ -238,10 +238,19 @@ if(TEST_COMMAND_LINE_PARSING)
 	set_tests_properties(check_command_line_parsing_6 PROPERTIES WILL_FAIL TRUE)
 	add_test(check_command_line_parsing_7 ${fmuCheck} -l 6 -n 10 -s 1 -c -1 a.fmu  )
 	set_tests_properties(check_command_line_parsing_7 PROPERTIES WILL_FAIL TRUE)
+	add_test(check_bad_fmu_file ${fmuCheck} -l 6 no_such_file.fmu  )
+	set_tests_properties(check_bad_fmu_file PROPERTIES WILL_FAIL TRUE)
 endif()
+
+add_test(
+	NAME check_with_default_params 
+	COMMAND ${fmuCheck}  ${FMUCHK_BUILD}/FMIL/build/testfolder/BouncingBall_cs.fmu)
 
 foreach(fmu ${ALL_TEST_FMUS})
 	string(REPLACE "/" "_" testname "check_${fmu}")
 	string(REPLACE ":" "_" testname ${testname})
-	add_test(${testname} ${fmuCheck} -t ${TEST_OUT_DIR} -l 6 -o ${TEST_OUT_DIR}/${testname}.csv -e ${TEST_OUT_DIR}/${testname}.log ${fmu} )
+	add_test(
+		NAME ${testname}
+		WORKING_DIRECTORY ${TEST_OUT_DIR}
+		COMMAND ${fmuCheck} -t ${TEST_OUT_DIR} -l 6 -o ${testname}.csv -e ${testname}.log ${fmu} )
 endforeach(fmu)

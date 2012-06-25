@@ -61,7 +61,9 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 		cb->free(event_indicators_prev);
 	}
 
-	jmstatus = fmi1_import_instantiate_model(fmu, "Test ME model instance");
+	cdata->instanceName = "Test FMI 1.0 ME";
+
+	jmstatus = fmi1_import_instantiate_model(fmu, cdata->instanceName);
 	if (jmstatus == jm_status_error) {
 		jm_log_fatal(cb, fmu_checker_module, "Could not instantiate the model");
 		cb->free(states);

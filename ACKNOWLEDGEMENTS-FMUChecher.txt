@@ -7,7 +7,7 @@ references to the full texts.
 
 - FMI Library
 A library for working with FMUs, part of JModelica platform.
-Homepage: <http://www.jmodelica.org/>
+Homepage: <http://www.jmodelica.org/FMILibrary/>
 License identical to FMI Compliance Checker.
 
 - eXPat

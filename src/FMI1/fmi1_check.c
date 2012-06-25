@@ -10,9 +10,62 @@
 */
 
 #include <errno.h>
+#include <assert.h>
 
 #include <fmuChecker.h>
 #include <fmilib.h>
+
+void  fmi1_checker_logger(fmi1_component_t c, fmi1_string_t instanceName, fmi1_status_t status, fmi1_string_t category, fmi1_string_t message, ...){
+
+	fmu_check_data_t* cdata = cdata_global_ptr;
+	fmi1_import_t* fmu = cdata->fmu1;
+	jm_callbacks* cb = &cdata->callbacks;
+	jm_log_level_enu_t logLevel;
+	char buf[10000], *curp = buf;
+	const char* statusStr;
+    va_list args;
+
+	assert(cdata);
+	assert(fmu);
+
+	if(strcmp(instanceName, cdata->instanceName) != 0) {
+		jm_log_error(cb, fmu_checker_module, "FMU does not utilize provided instance name (%s != %s)", cdata->instanceName, instanceName);
+	};
+
+	switch(status) {
+		case fmi1_status_pending:
+		case fmi1_status_ok:
+			logLevel = jm_log_level_info;
+			break;
+		case fmi1_status_discard:
+		case fmi1_status_warning:
+			logLevel = jm_log_level_warning;
+			break;
+		case fmi1_status_error:
+			logLevel = jm_log_level_error;
+			break;
+		case fmi1_status_fatal:
+		default:
+			logLevel = jm_log_level_fatal;
+	}
+
+    if(logLevel > cb->log_level) return;
+	if(logLevel < jm_log_level_info)
+		cdata->num_fmu_messages++;
+
+	if(category) {
+        sprintf(curp, "\t[FMU][%s]", category);
+        curp += strlen(category)+2;
+    }
+	statusStr = fmi1_status_to_string(status);
+    sprintf(curp, "[FMU status:%s] ", statusStr);
+    curp += strlen(statusStr) + strlen("[FMU status:] ");
+    va_start (args, message);
+	vsprintf(curp, message, args);
+	fmi1_import_expand_variable_references(fmu, buf, cb->errMessageBuffer,JM_MAX_ERROR_MESSAGE_SIZE);
+    va_end (args);
+	checker_logger(cb, fmu_checker_module, jm_log_level_nothing, cb->errMessageBuffer);
+}
 
 jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 	fmi1_callback_functions_t callBackFunctions;
@@ -91,10 +144,10 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 
 	callBackFunctions.allocateMemory = cb->calloc;
 	callBackFunctions.freeMemory = cb->free;
-	callBackFunctions.logger = fmi1_log_forwarding;
+	callBackFunctions.logger = fmi1_checker_logger;
 	callBackFunctions.stepFinished = 0;
 
-	status = fmi1_import_create_dllfmu(cdata->fmu1, callBackFunctions, 1);
+	status = fmi1_import_create_dllfmu(cdata->fmu1, callBackFunctions, 0);
 
 	if (status == jm_status_error) {
 		jm_log_fatal(cb,fmu_checker_module,"Could not create the DLL loading mechanism(C-API).");
@@ -120,6 +173,18 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 		return fmi1_cs_simulate(cdata);
 }
 
+jm_status_enu_t checked_fprintf(fmu_check_data_t* cdata, const char* fmt, ...) {
+	jm_status_enu_t status = jm_status_success;
+	va_list args; 
+    va_start (args, fmt); 
+	if(vfprintf(cdata->out_file, fmt, args) <= 0) {
+		jm_log_fatal(&cdata->callbacks, fmu_checker_module, "Error writing output file (%s)", strerror(errno));
+		status = jm_status_error;
+	}
+    va_end (args); 
+	return status;
+}
+
 jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 	fmi1_import_variable_list_t * vl = cdata->vl;
 	size_t i;
@@ -127,19 +192,46 @@ jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 	char fmt[10];
 	sprintf(fmt, "%s%c", "%s", cdata->CSV_separator);
 	
-	if(fprintf(cdata->out_file, fmt, "time") <= 0) {
-		jm_log_fatal(&cdata->callbacks, fmu_checker_module, "Error writing output file (%s)", strerror(errno));
+	if(checked_fprintf(cdata, fmt, "time") != jm_status_success) {
 		return jm_status_error;
 	}
 
 	for(i = 0; i < n; i++) {
-		if(fprintf(cdata->out_file, fmt, fmi1_import_get_variable_name(fmi1_import_get_variable(vl, i)))<=0) {
-			jm_log_fatal(&cdata->callbacks, fmu_checker_module, "Error writing output file (%s)", strerror(errno));
+		if(checked_fprintf(cdata, fmt, fmi1_import_get_variable_name(fmi1_import_get_variable(vl, i)))!= jm_status_success) {
 			return jm_status_error;
 		}
 	}
-	if(fprintf(cdata->out_file, "\n")<=0) {
-		jm_log_fatal(&cdata->callbacks, fmu_checker_module, "Error writing output file (%s)", strerror(errno));
+
+	if(checked_fprintf(cdata, "\n") != jm_status_success) {
+		return jm_status_error;
+	}
+
+	if(checked_fprintf(cdata, "%c", cdata->CSV_separator) != jm_status_success) {
+		return jm_status_error;
+	}
+
+	for(i = 0; i < n; i++) {
+		fmi1_import_variable_t * v = fmi1_import_get_variable(vl, i);
+		fmi1_import_variable_t * vb = fmi1_import_get_variable_alias_base(cdata->fmu1, v);
+		jm_status_enu_t status;
+		switch(fmi1_import_get_variable_alias_kind(v)) {
+			case fmi1_variable_is_negated_alias:
+				status = checked_fprintf(cdata, "Negated %s%c",fmi1_import_get_variable_name(vb), cdata->CSV_separator);
+				break;
+			case fmi1_variable_is_alias:
+				status = checked_fprintf(cdata, "Aliased to %s%c",fmi1_import_get_variable_name(vb), cdata->CSV_separator);
+				break;
+			case fmi1_variable_is_not_alias:
+				status = checked_fprintf(cdata, "Not an alias%c", cdata->CSV_separator);
+				break;
+			default:
+				assert(0);
+		};
+		if(status != jm_status_success) {
+			return jm_status_error;
+		}
+	}
+	if(checked_fprintf(cdata, "\n") != jm_status_success) {
 		return jm_status_error;
 	}
 	return jm_status_success;
@@ -150,38 +242,48 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 	fmi1_import_variable_list_t * vl = cdata->vl;
 	jm_callbacks* cb = &cdata->callbacks;
 	fmi1_status_t fmistatus = fmi1_status_ok;
-	int outstatus = 1;
+	jm_status_enu_t outstatus = jm_status_success;
 	size_t i;
 	size_t n = fmi1_import_get_variable_list_size(vl);
+
 	char fmt_r[20];
 	char fmt_i[20];
 	char fmt_s[20];
 	char fmt_true[20];
 	char fmt_false[20];
+	char fmt_alias[20];
 	sprintf(fmt_r, "%s%c", "%g", cdata->CSV_separator);
 	sprintf(fmt_i, "%s%c", "%d", cdata->CSV_separator);
 	sprintf(fmt_s, "%s%c", "%s", cdata->CSV_separator);
 	sprintf(fmt_true, "true%c", cdata->CSV_separator);
 	sprintf(fmt_false, "false%c", cdata->CSV_separator);
+	sprintf(fmt_alias, "%c", cdata->CSV_separator);
 
-	outstatus = fprintf(cdata->out_file, fmt_r, time);
+	if(checked_fprintf(cdata, fmt_r, time) != jm_status_success) {
+		return jm_status_error;
+	}
 
 	for(i = 0; i < n; i++) {
 		fmi1_import_variable_t* v = fmi1_import_get_variable(vl, i);
 		fmi1_value_reference_t vr = fmi1_import_get_variable_vr(v); 
+		if(fmi1_import_get_variable_alias_kind(v) != fmi1_variable_is_not_alias) {
+			if(checked_fprintf(cdata, fmt_alias) != jm_status_success)
+				return jm_status_error;
+			continue;
+		}
 		switch(fmi1_import_get_variable_base_type(v)) {
 		case fmi1_base_type_real:
 			{
 				double val;
 				fmistatus = fmi1_import_get_real(fmu,&vr, 1, &val);
-				outstatus = fprintf(cdata->out_file, fmt_r, val);
+				outstatus = checked_fprintf(cdata, fmt_r, val);
 				break;
 			}
 		case fmi1_base_type_int:
 			{
 				int val;
 				fmistatus = fmi1_import_get_integer(fmu,&vr, 1, &val);
-				outstatus = fprintf(cdata->out_file, fmt_i, val);
+				outstatus = checked_fprintf(cdata, fmt_i, val);
 				break;
 			}
 		case fmi1_base_type_bool:
@@ -190,14 +292,14 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 				char* fmt;
 				fmistatus = fmi1_import_get_boolean(fmu,&vr, 1, &val);
 				fmt = (val == fmi1_true) ? fmt_true:fmt_false;
-				outstatus = fprintf(cdata->out_file, fmt);
+				outstatus = checked_fprintf(cdata, fmt);
 				break;
 			}
 		case fmi1_base_type_str:
 			{
 				fmi1_string_t val;
 				fmistatus = fmi1_import_get_string(fmu,&vr, 1, &val);
-				outstatus = fprintf(cdata->out_file, fmt_s, val);
+				outstatus = checked_fprintf(cdata, fmt_s, val);
 				break;
 			}
 		case fmi1_base_type_enum:
@@ -213,10 +315,10 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 				if(et) itname = fmi1_import_get_enum_type_item_name(et, val);
 				if(!itname) {
 					jm_log_error(cb, fmu_checker_module, "Could not get item name for enum variable %s", fmi1_import_get_variable_name(v));
-					outstatus = fprintf(cdata->out_file, fmt_i, val);
+					outstatus = checked_fprintf(cdata, fmt_i, val);
 				}
 				else {
-					outstatus = fprintf(cdata->out_file, fmt_s, itname);
+					outstatus = checked_fprintf(cdata, fmt_s, itname);
 				}
 				break;
 			}
@@ -226,13 +328,11 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 				fmi1_status_to_string(fmistatus), fmi1_import_get_variable_name(v));
 		}
 
-		if(outstatus<=0) {
-			jm_log_fatal(&cdata->callbacks, fmu_checker_module, "Error writing output file (%s)", strerror(errno));
+		if(outstatus != jm_status_success) {
 			return jm_status_error;
 		}
 	}
-	if(fprintf(cdata->out_file, "\n")<=0) {
-		jm_log_fatal(&cdata->callbacks, fmu_checker_module, "Error writing output file (%s)", strerror(errno));
+	if(checked_fprintf(cdata, "\n")!= jm_status_success) {
 		return jm_status_error;
 	}
 	return jm_status_success;
