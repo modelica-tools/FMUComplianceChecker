@@ -398,7 +398,6 @@ int main(int argc, char *argv[])
 		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\t%u Error(s)", cdata.num_errors);
 	}
 	if((status == jm_status_success) && (cdata.num_fatal == 0)) {
-		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\tNo fatal errors found");
 		if(cdata.log_file && (cdata.log_file != stderr))
 			fclose(cdata.log_file);
 		do_exit(0);
