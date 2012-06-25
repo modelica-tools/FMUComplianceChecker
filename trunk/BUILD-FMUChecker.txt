@@ -8,7 +8,7 @@ the build. The primary target of the library build script is a command-line
 executable:  <prefix>/bin/fmuChecket.<platform>[.extention]
 
 Note that FMUChecker depends on FMI Library that needs to be downloaded
-separately from <http://www.jmodelica.org>
+separately from <http://www.jmodelica.org/FMILibrary>
 
 The following FMUChecker specific build configuration options are provided:
 
@@ -16,7 +16,7 @@ FMUCHK_INSTALL_PREFIX - Prefix prepended to install directories.
 	Default: <build_dir>/../install
 	
 FMUCHK_FMIL_HOME_DIR - Path to the directory with FMIL sources
-	downloaded from <http://www.jmodelica.org>. 
+	downloaded from <http://www.jmodelica.org/FMILibrary>. 
 	Default: "No FMIL"
 	
 FMUCHK_FMI_STANDARD_HEADERS  - Path to the FMI standard headers directory. 
