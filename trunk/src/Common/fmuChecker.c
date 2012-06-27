@@ -32,7 +32,7 @@ void do_exit(int code)
 	exit(code);
 }
 
-size_t allocated_mem_blocks = 0;
+int allocated_mem_blocks = 0;
 
 void* check_malloc(size_t size) {
 	void* ret = malloc(size);
@@ -375,9 +375,16 @@ int main(int argc, char *argv[])
 	clear_fmu_check_data(&cdata, 0);
 
 	if(allocated_mem_blocks)  {
-		jm_log_error(callbacks,fmu_checker_module,
-			"There was a definite memory leak. At least %d blocks were not freed", 
-			allocated_mem_blocks);
+		if(allocated_mem_blocks > 0) {
+			jm_log_error(callbacks,fmu_checker_module,
+				"Memory leak: freeMemory was not called for %d block(s) allocated by allocateMemory",
+				allocated_mem_blocks);
+		}
+		else {
+			jm_log_error(callbacks,fmu_checker_module,
+				"Memory mamagement: freeMemory was called without allocateMemory for %d block(s)", 
+				-allocated_mem_blocks);
+		}
 	}
 
 	jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "FMU check summary:");

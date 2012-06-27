@@ -23,7 +23,7 @@ extern const char* fmu_checker_module;
 void do_exit(int code);
 
 /** Global variable used for checking alloc/free consistency */
-extern size_t allocated_mem_blocks;
+extern int allocated_mem_blocks;
 
 /** malloc proxy */
 void* check_malloc(size_t size);
