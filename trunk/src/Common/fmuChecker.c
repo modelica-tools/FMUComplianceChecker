@@ -69,6 +69,8 @@ void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_le
 	else
 		ret = fprintf(cdata->log_file, "%s\n", message);
 
+	fflush(cdata->log_file);
+
 	if(ret <= 0) {
 		fclose(cdata->log_file);
 		cdata->log_file = stderr;
