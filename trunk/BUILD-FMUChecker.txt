@@ -8,7 +8,8 @@ the build. The primary target of the library build script is a command-line
 executable:  <prefix>/bin/fmuChecket.<platform>[.extention]
 
 Note that FMUChecker depends on FMI Library that needs to be downloaded
-separately from <http://www.jmodelica.org/FMILibrary>
+separately from <http://www.jmodelica.org/FMILibrary>. Current version of 
+the FMUChecker depends on FMI Library v1.0.
 
 The following FMUChecker specific build configuration options are provided:
 

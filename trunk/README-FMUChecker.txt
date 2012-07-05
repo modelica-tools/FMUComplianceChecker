@@ -44,7 +44,7 @@ Options:
 -n <num_steps>   Number of steps in forward Euler until time end.
                  Default is 100 steps simulation between start and stop time.
 
--o <filename>    Output file name. Default is to use standard output.
+-o <filename>    Simulation result output file name. Default is to use standard output.
 
 -s <stopTime>    Simulation stop time, default is to use information from
                 'DefaultExperiment' as specified in the model description XML.
@@ -54,3 +54,16 @@ Options:
 
 -x               Check XML and stop. Default is to load the DLL and simulate
                  after this.
+
+Command line examples:
+
+fmuCheck.win32 model.fmu 
+        The checker on win32 platform will process "model.fmu"  with default options.
+                
+fmuCheck.win64 -e log.txt -o result.csv -c , -s 2 -h 1e-3 -l 5 -t . model.fmu 
+        The checker on win64 platform will process "model.fmu". The log 
+        messages will be saved in log.txt, simulation output in 
+        result.csv and comma will be used for field separation in the CSV
+        file. The checker will simulate the FMU until 2 seconds with 
+        time step 1e-3 seconds. Verbose messages will be generated.
+        Temporary files will be created in the current directory.

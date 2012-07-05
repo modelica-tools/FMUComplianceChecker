@@ -90,10 +90,20 @@ void print_usage( ) {
 		"-h <stepSize>\t Step size to use in forward Euler. Takes preference over '-n'.\n\n"
 		"-l <log level>\t Log level: 0 - no logging, 1 - fatal errors only,\n\t\t 2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.\n\n"
 		"-n <num_steps>\t Number of steps in forward Euler until time end.\n\t\t Default is 100 steps simulation between start and stop time.\n\n"
-		"-o <filename>\t Output file name. Default is to use standard output.\n\n"
+		"-o <filename>\t Simulation result output file name. Default is to use standard output.\n\n"
 		"-s <stopTime>\t Simulation stop time, default is to use information from\n\t\t'DefaultExperiment' as specified in the model description XML.\n\n"
 		"-t <tmp-dir>\t Temporary dir to use for unpacking the FMU.\n\t\t Default is to use system-wide directory, e.g., C:\\Temp.\n\n"
 		"-x\t\t Check XML and stop, default is to load the DLL and simulate\n\t\t after this.\n\n"
+		"Command line examples:\n\n"
+		"fmuCheck." FMI_PLATFORM " model.fmu \n"
+		"\tThe checker will process 'model.fmu'  with default options.\n\n"
+		"fmuCheck." FMI_PLATFORM " -e log.txt -o result.csv -c , -s 2 -h 1e-3 -l 5 -t . model.fmu \n"
+        "\tThe checker will process 'model.fmu'.\n"
+        "\tLog messages will be saved in log.txt, simulation output in \n"
+        "\tresult.csv and comma will be used for field separation in the CSV\n"
+        "\tfile. The checker will simulate the FMU until 2 seconds with \n"
+        "\ttime step 1e-3 seconds. Verbose messages will be generated.\n"
+        "\tTemporary files will be created in the current directory.\n"
 		);
 }
 
