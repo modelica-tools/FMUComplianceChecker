@@ -15,6 +15,10 @@
 #include <errno.h>
 #include <assert.h>
 
+#if defined(_WIN32) || defined(WIN32)
+	#include <Shlwapi.h>
+#endif
+
 // #include <config_test.h>
 #include <JM/jm_portability.h>
 #include <fmilib.h>
@@ -244,17 +248,40 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		if(!cdata->temp_dir) cdata->temp_dir = "./";
 	}
 	{
+		/* Now construct an unique directory to unpack the FMU. Save the path as a location as well. */
 		const char * tmpl = "/fmutmpXXXXXX";
-		size_t len;
+		const char * locationPrefix = "file://";
+		size_t len, locationLen;
+
+		char curDir[FILENAME_MAX + 2], tmpDir[FILENAME_MAX + 2];
+
 		len = strlen(cdata->temp_dir);
-		if((cdata->temp_dir[len-1] == tmpl[0]) || (cdata->temp_dir[len-1] == '/') || (cdata->temp_dir[len-1] == FMI_FILE_SEP[0]))
+
+		if( jm_portability_get_current_working_directory(curDir, FILENAME_MAX+1) != jm_status_success) {
+			jm_log_fatal(&cdata->callbacks,fmu_checker_module, "Could not get current working directory (%s)", strerror(errno));
+			do_exit(1);
+		};
+
+		if(jm_portability_set_current_working_directory((char*)cdata->temp_dir) != jm_status_success) {
+			jm_log_fatal(&cdata->callbacks,fmu_checker_module, "Could not change to the temporary files directory %s", cdata->temp_dir);
+			do_exit(1);
+		}
+		if( jm_portability_get_current_working_directory(tmpDir, FILENAME_MAX+1) != jm_status_success) {
+			jm_log_fatal(&cdata->callbacks,fmu_checker_module, "Could not get canonical name for the temporary files directory (%s)", strerror(errno));
+			jm_portability_set_current_working_directory(curDir);
+			do_exit(1);
+		};
+
+		len = strlen(tmpDir);
+		if((tmpDir[len-1] == tmpl[0]) || (tmpDir[len-1] == '/') || (tmpDir[len-1] == FMI_FILE_SEP[0]))
 			tmpl++;
-		cdata->tmpPath = (char*)cdata->callbacks.malloc(strlen(cdata->temp_dir) + strlen(tmpl) + 1);
+		cdata->tmpPath = (char*)cdata->callbacks.malloc(len + strlen(tmpl) + 1);
 		if(!cdata->tmpPath) {
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not allocate memory");
 			do_exit(1);
 		}
-		sprintf(cdata->tmpPath,"%s%s",cdata->temp_dir,tmpl);
+		sprintf(cdata->tmpPath,"%s%s",tmpDir,tmpl);
+
 		if(!jm_mktemp(cdata->tmpPath)) {
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not create a unique temporary directory name");
 			cdata->callbacks.free(cdata->tmpPath);
@@ -264,6 +291,30 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			cdata->callbacks.free(cdata->tmpPath);
 			do_exit(1);
 		}
+
+		locationLen = strlen(cdata->tmpPath) + strlen(locationPrefix) + 1;
+
+		if(locationLen > MAX_URL_LENGTH - 1) {
+			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Can not handle path longer than %d", locationLen);
+			do_exit(1);
+		}
+		
+		sprintf(cdata->fmuLocation,"file://%s",cdata->tmpPath);
+
+#if defined(_WIN32) || defined(WIN32)
+		{
+			DWORD pathLen = MAX_URL_LENGTH;
+			HRESULT code = UrlCreateFromPathA(
+				cdata->tmpPath,
+				cdata->fmuLocation,
+				&pathLen,
+				0);
+			if( (code != S_FALSE) && (code != S_OK)) {
+				jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not constuct file URL from path %s", cdata->tmpPath);
+				do_exit(1);
+			}
+		}
+#endif
 	}
 	if(cdata->output_file_name) {
 		cdata->out_file = fopen(cdata->output_file_name, "w");

@@ -37,12 +37,18 @@ void  check_free(void* obj);
 /** Print information on command line options */
 void print_usage() ;
 
+#define MAX_URL_LENGTH 10000
+
 /**  Checker data structure is used to pass information between different routines */
 typedef struct fmu_check_data_t {
 	/** FMU file */
 	const char* FMUPath;	
 	/** Temporary directory with unique name where FMU is unpacked */
 	char* tmpPath;
+
+	/** Same as above with file:// prefix. Used for CS FMUs */
+	char fmuLocation[MAX_URL_LENGTH];
+
 	/** Directory to be used for temporary files. Either user specified or system-wide*/
 	const char* temp_dir;
 

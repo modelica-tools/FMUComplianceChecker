@@ -195,9 +195,10 @@ include_directories(
 
 add_executable(${fmuCheck} ${SOURCE} ${HEADERS})
 target_link_libraries(${fmuCheck} fmilib)
-
+if(WIN32)
+	target_link_libraries(${fmuCheck} Shlwapi)
+endif(WIN32)
 if(UNIX) 
-	message(STATUS "Adding -ldl to the linker")
 	target_link_libraries(${fmuCheck} dl)
 endif(UNIX)
 
