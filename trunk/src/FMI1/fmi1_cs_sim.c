@@ -18,9 +18,8 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 	jm_callbacks* cb = &cdata->callbacks;
 
 	fmi1_import_t* fmu = cdata->fmu1;
-	fmi1_string_t fmuGUID;
-	fmi1_string_t fmuLocation = "";
-	fmi1_string_t mimeType = "";
+	fmi1_string_t fmuGUID = fmi1_import_get_GUID(fmu);
+	fmi1_string_t mimeType;
 	fmi1_real_t timeout = 0.0;
 	fmi1_boolean_t visible = fmi1_false;
 	fmi1_boolean_t interactive = fmi1_false;
@@ -30,6 +29,22 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 	fmi1_real_t hstep;
 	fmi1_real_t tend = fmi1_import_get_default_experiment_stop(fmu);
 	fmi1_boolean_t StopTimeDefined = fmi1_true;
+
+	mimeType = fmi1_import_get_mime_type(fmu);
+	if(	(cdata->fmu1_kind == fmi1_fmu_kind_enu_cs_standalone) 
+		|| !mimeType || !mimeType[0])
+	{
+		mimeType = "application/x-fmu-sharedlibrary";
+	}
+	else {
+		if(		(strcmp(mimeType, "application/x-fmu-sharedlibrary") != 0)
+			&&  (strcmp(mimeType, "application/x-fmu-modelica") != 0)
+			)
+		{
+			jm_log_info(cb, fmu_checker_module,"The FMU requests simulator with MIME type '%s'. Please, start it manually to perform the simulation.");
+			return (jm_status_success);
+		}
+	}
 	if(cdata->stopTime > 0) {
 		tend = cdata->stopTime;
 	}
@@ -40,11 +55,10 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 		hstep = (tend - tstart) / cdata->numSteps;
 	}
 
-
-	fmuGUID = fmi1_import_get_GUID(fmu);
-
 	cdata->instanceName = "Test FMI 1.0 CS";
-	jmstatus = fmi1_import_instantiate_slave(fmu, cdata->instanceName, fmuLocation, mimeType, timeout, visible, interactive);
+	jm_log_verbose(cb, fmu_checker_module, "Checker will instantiate the slave with \n"
+		"\tFMU location ='%s'\n\tMIME type = '%s'", cdata->fmuLocation, mimeType);
+	jmstatus = fmi1_import_instantiate_slave(fmu, cdata->instanceName, cdata->fmuLocation, mimeType, timeout, visible, interactive);
 	if (jmstatus == jm_status_error) {
 		jm_log_fatal(cb, fmu_checker_module, "Could not instantiate the model");
 		return jm_status_error;
