@@ -264,6 +264,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 
 		if(jm_portability_set_current_working_directory((char*)cdata->temp_dir) != jm_status_success) {
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module, "Could not change to the temporary files directory %s", cdata->temp_dir);
+			jm_portability_set_current_working_directory(curDir);
 			do_exit(1);
 		}
 		if( jm_portability_get_current_working_directory(tmpDir, FILENAME_MAX+1) != jm_status_success) {
@@ -271,6 +272,8 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			jm_portability_set_current_working_directory(curDir);
 			do_exit(1);
 		};
+
+		jm_portability_set_current_working_directory(curDir);
 
 		len = strlen(tmpDir);
 		if((tmpDir[len-1] == tmpl[0]) || (tmpDir[len-1] == '/') || (tmpDir[len-1] == FMI_FILE_SEP[0]))
