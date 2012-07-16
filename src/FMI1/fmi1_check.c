@@ -28,9 +28,17 @@ void  fmi1_checker_logger(fmi1_component_t c, fmi1_string_t instanceName, fmi1_s
 	assert(cdata);
 	assert(fmu);
 
-	if(strcmp(instanceName, cdata->instanceName) != 0) {
-		jm_log_error(cb, fmu_checker_module, "FMU does not utilize provided instance name (%s != %s)", cdata->instanceName, instanceName);
-	};
+	if(!cdata->printed_instance_name_error_flg) {
+		if(strcmp(instanceName, cdata->instanceName) != 0) {
+			jm_log_error(cb, fmu_checker_module, "FMU does not utilize provided instance name (%s != %s)", cdata->instanceName, instanceName);
+			cdata->printed_instance_name_error_flg = 1;
+		}
+		else if(instanceName == cdata->instanceName) {
+			jm_log_error(cb, fmu_checker_module, "FMU does not make an internal copy of provided instance name (violation of fmiString handling)",
+				cdata->instanceName, instanceName);
+			cdata->printed_instance_name_error_flg = 1;
+		}
+	}
 
 	switch(status) {
 		case fmi1_status_pending:
@@ -53,10 +61,13 @@ void  fmi1_checker_logger(fmi1_component_t c, fmi1_string_t instanceName, fmi1_s
 	if(logLevel < jm_log_level_info)
 		cdata->num_fmu_messages++;
 
-	if(category) {
+	if(category && *category) {
         sprintf(curp, "\t[FMU][%s]", category);
-        curp += strlen(category)+2;
     }
+	else {
+        sprintf(curp, "\t[FMU]");
+	}
+    curp += strlen(curp);
 	statusStr = fmi1_status_to_string(status);
     sprintf(curp, "[FMU status:%s] ", statusStr);
     curp += strlen(statusStr) + strlen("[FMU status:] ");
@@ -189,48 +200,36 @@ jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 	fmi1_import_variable_list_t * vl = cdata->vl;
 	size_t i;
 	size_t n = fmi1_import_get_variable_list_size(vl);
-	char fmt[10];
-	sprintf(fmt, "%s%c", "%s", cdata->CSV_separator);
 	
-	if(checked_fprintf(cdata, fmt, "time") != jm_status_success) {
-		return jm_status_error;
-	}
-
-	for(i = 0; i < n; i++) {
-		if(checked_fprintf(cdata, fmt, fmi1_import_get_variable_name(fmi1_import_get_variable(vl, i)))!= jm_status_success) {
-			return jm_status_error;
-		}
-	}
-
-	if(checked_fprintf(cdata, "\n") != jm_status_success) {
-		return jm_status_error;
-	}
-
-	if(checked_fprintf(cdata, "%c", cdata->CSV_separator) != jm_status_success) {
+	if(checked_fprintf(cdata,"time%c", cdata->CSV_separator) != jm_status_success) {
 		return jm_status_error;
 	}
 
 	for(i = 0; i < n; i++) {
 		fmi1_import_variable_t * v = fmi1_import_get_variable(vl, i);
+		const char* vn = fmi1_import_get_variable_name(v);
 		fmi1_import_variable_t * vb = fmi1_import_get_variable_alias_base(cdata->fmu1, v);
-		jm_status_enu_t status;
+		jm_status_enu_t status = jm_status_success;
 		switch(fmi1_import_get_variable_alias_kind(v)) {
+			case fmi1_variable_is_not_alias:
+				status = checked_fprintf(cdata, "%s%c", vn, cdata->CSV_separator);
+				break;
 			case fmi1_variable_is_negated_alias:
-				status = checked_fprintf(cdata, "Negated %s%c",fmi1_import_get_variable_name(vb), cdata->CSV_separator);
+				status = checked_fprintf(cdata, "%s=-%s%c", 
+					vn, fmi1_import_get_variable_name(vb), cdata->CSV_separator);
 				break;
 			case fmi1_variable_is_alias:
-				status = checked_fprintf(cdata, "Aliased to %s%c",fmi1_import_get_variable_name(vb), cdata->CSV_separator);
-				break;
-			case fmi1_variable_is_not_alias:
-				status = checked_fprintf(cdata, "Not an alias%c", cdata->CSV_separator);
+				status = checked_fprintf(cdata, "%s=%s%c", 
+					vn, fmi1_import_get_variable_name(vb), cdata->CSV_separator);
 				break;
 			default:
 				assert(0);
-		};
+			}
 		if(status != jm_status_success) {
 			return jm_status_error;
 		}
 	}
+
 	if(checked_fprintf(cdata, "\n") != jm_status_success) {
 		return jm_status_error;
 	}

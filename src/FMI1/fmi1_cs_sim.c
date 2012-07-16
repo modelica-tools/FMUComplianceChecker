@@ -37,12 +37,11 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 		mimeType = "application/x-fmu-sharedlibrary";
 	}
 	else {
-		if(		(strcmp(mimeType, "application/x-fmu-sharedlibrary") != 0)
-			&&  (strcmp(mimeType, "application/x-fmu-modelica") != 0)
-			)
+		if(	strcmp(mimeType, "application/x-fmu-sharedlibrary") != 0 )
 		{
-			jm_log_info(cb, fmu_checker_module,"The FMU requests simulator with MIME type '%s'. Please, start it manually to perform the simulation.");
-			return (jm_status_success);
+			jm_log_info(cb, fmu_checker_module,"The FMU requests simulator with MIME type '%s'.", mimeType);
+			printf("\nPlease, start a simulator program for MIME type '%s'\nPress enter to continue.\n", mimeType);
+			getchar();
 		}
 	}
 	if(cdata->stopTime > 0) {
@@ -71,30 +70,38 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 	}
 	else {
 			jm_log_fatal(cb, fmu_checker_module, "Failed to initialize FMU for simulation (FMU status: %s)", fmi1_status_to_string(fmistatus));
-			fmistatus = fmi1_status_fatal;
 			jmstatus = jm_status_error;
 	}
 
-	while ((tcur <= tend) && (fmistatus == fmi1_status_ok)) {
+	if(jmstatus != jm_status_error) {
+		jm_log_verbose(cb, fmu_checker_module, "Writing simulation output for start time");
+		if(fmi1_write_csv_data(cdata, tstart) != jm_status_success){
+			jmstatus = jm_status_error;
+		}
+	}
+	while ((tcur < tend) && (jmstatus != jm_status_error)) {
 		fmi1_boolean_t newStep = fmi1_true;
-		if(tcur >= tend - 1e-3*hstep) /* last step should be on tend */
-			tcur = tend;
+		fmi1_real_t tnext = tcur + hstep;
+		if(tnext > tend - 1e-3*hstep) { /* last step should be on tend */
+			hstep = tend - tcur;
+			tnext = tend;
+		}
 
-		jm_log_verbose(cb, fmu_checker_module, "Simulation time: %g", tcur);
+		jm_log_verbose(cb, fmu_checker_module, "Simulation step from time: %g until: %g", tcur, tnext);
 
 		fmistatus = fmi1_import_do_step(fmu, tcur, hstep, newStep);
 
+		tcur = tnext;
+
 		if(fmi1_write_csv_data(cdata, tcur) != jm_status_success){
 			jmstatus = jm_status_error;
-			break;
 		}
 
 		if((fmistatus == fmi1_status_ok) || (fmistatus == fmi1_status_warning)) {
 			fmistatus = fmi1_status_ok;
 		}
 		else 
-			break;
-		tcur += hstep;
+			jmstatus = jm_status_error;
 	}
 
 	if((fmistatus != fmi1_status_ok) && (fmistatus != fmi1_status_warning)) {

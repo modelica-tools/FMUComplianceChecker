@@ -64,6 +64,9 @@ typedef struct fmu_check_data_t {
 	/** counter for the non-info messages from FMU */
 	unsigned int num_fmu_messages;
 
+	/** A flag that makes instance name error appear only once */
+	int printed_instance_name_error_flg;
+
 	/** FMIL callbacks*/
 	jm_callbacks callbacks;
 	/** FMIL context */
@@ -124,6 +127,11 @@ void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_le
 
 /** Check an FMI 1.0 FMU */
 jm_status_enu_t fmi1_check(fmu_check_data_t* cdata);
+
+/** Check if the fmi status is ok or warning */
+static int fmi1_status_ok_or_warning(fmi1_status_t fmistatus) {
+	return (fmistatus == fmi1_status_ok) || (fmistatus == fmi1_status_warning);
+}
 
 /** Simulate an FMI 1.0 ME FMU */
 jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata);

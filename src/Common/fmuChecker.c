@@ -338,6 +338,7 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->num_warnings = 0;
 	cdata->num_fatal = 0;
 	cdata->num_fmu_messages = 0;
+	cdata->printed_instance_name_error_flg = 0;
 
 	cdata->callbacks.malloc = check_malloc;
     cdata->callbacks.calloc = check_calloc;
