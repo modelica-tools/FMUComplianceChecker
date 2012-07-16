@@ -1,5 +1,5 @@
 File: LICENCE-FMUChecker.txt
-Licence information for FMI Compliance Checher (FMUChecker) application.
+Licence information for FMI Compliance Checker (FMUChecker) application.
 
 Copyright (c) 2012, Modelon AB
 All rights reserved.

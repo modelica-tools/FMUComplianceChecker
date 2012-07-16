@@ -1,5 +1,5 @@
 File: README-FMUChecker.txt
-Background information for FMI Compliance Checher (FMUChecker) application.
+Background information for FMI Compliance Checker (FMUChecker) application.
 
 For build instructions see: BUILD-FMUChecker.txt
 Licence information is provided in: LICENCE-FMUChecker.txt
