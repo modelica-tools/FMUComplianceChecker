@@ -214,10 +214,18 @@ jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 			case fmi1_variable_is_not_alias:
 				status = checked_fprintf(cdata, "%s%c", vn, cdata->CSV_separator);
 				break;
-			case fmi1_variable_is_negated_alias:
+			case fmi1_variable_is_negated_alias: {
+				fmi1_base_type_enu_t btype = fmi1_import_get_variable_base_type(v);
 				status = checked_fprintf(cdata, "%s=-%s%c", 
 					vn, fmi1_import_get_variable_name(vb), cdata->CSV_separator);
+				if( btype == fmi1_base_type_enum) {
+					jm_log_error(&cdata->callbacks, fmu_checker_module, "Negated alias is not meaningful for enum variable %s. Ignoring.", vn);
+				}
+				else if( btype == fmi1_base_type_str) {
+					jm_log_error(&cdata->callbacks, fmu_checker_module, "Negated alias is not meaningful for string variable %s. Ignoring.", vn);
+				}
 				break;
+			}
 			case fmi1_variable_is_alias:
 				status = checked_fprintf(cdata, "%s=%s%c", 
 					vn, fmi1_import_get_variable_name(vb), cdata->CSV_separator);
@@ -250,13 +258,11 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 	char fmt_s[20];
 	char fmt_true[20];
 	char fmt_false[20];
-	char fmt_alias[20];
 	sprintf(fmt_r, "%s%c", "%g", cdata->CSV_separator);
 	sprintf(fmt_i, "%s%c", "%d", cdata->CSV_separator);
 	sprintf(fmt_s, "%s%c", "%s", cdata->CSV_separator);
 	sprintf(fmt_true, "true%c", cdata->CSV_separator);
 	sprintf(fmt_false, "false%c", cdata->CSV_separator);
-	sprintf(fmt_alias, "%c", cdata->CSV_separator);
 
 	if(checked_fprintf(cdata, fmt_r, time) != jm_status_success) {
 		return jm_status_error;
@@ -265,16 +271,13 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 	for(i = 0; i < n; i++) {
 		fmi1_import_variable_t* v = fmi1_import_get_variable(vl, i);
 		fmi1_value_reference_t vr = fmi1_import_get_variable_vr(v); 
-		if(fmi1_import_get_variable_alias_kind(v) != fmi1_variable_is_not_alias) {
-			if(checked_fprintf(cdata, fmt_alias) != jm_status_success)
-				return jm_status_error;
-			continue;
-		}
 		switch(fmi1_import_get_variable_base_type(v)) {
 		case fmi1_base_type_real:
 			{
 				double val;
 				fmistatus = fmi1_import_get_real(fmu,&vr, 1, &val);
+				if(fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias)
+					val = -val;
 				outstatus = checked_fprintf(cdata, fmt_r, val);
 				break;
 			}
@@ -282,6 +285,8 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 			{
 				int val;
 				fmistatus = fmi1_import_get_integer(fmu,&vr, 1, &val);
+				if(fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias)
+					val = -val;
 				outstatus = checked_fprintf(cdata, fmt_i, val);
 				break;
 			}
@@ -290,7 +295,10 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 				fmi1_boolean_t val;
 				char* fmt;
 				fmistatus = fmi1_import_get_boolean(fmu,&vr, 1, &val);
-				fmt = (val == fmi1_true) ? fmt_true:fmt_false;
+				if(fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias)
+					fmt = (val == fmi1_false) ? fmt_true:fmt_false;
+				else
+					fmt = (val == fmi1_true) ? fmt_true:fmt_false;
 				outstatus = checked_fprintf(cdata, fmt);
 				break;
 			}
