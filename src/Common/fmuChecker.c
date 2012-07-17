@@ -222,6 +222,8 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			do_exit(1);
 		}
 	}
+
+	
 	{
 		jm_log_level_enu_t log_level = cdata->callbacks.log_level;
 		jm_log_verbose(&cdata->callbacks,fmu_checker_module,"Setting log level to [%s]", jm_log_level_to_string(log_level));
@@ -229,10 +231,9 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		if(log_level == jm_log_level_debug) {
 			jm_log_verbose(&cdata->callbacks,fmu_checker_module,"This binary is build without debug log messages."
 			"\n Reconfigure with FMUCHK_ENABLE_LOG_LEVEL_DEBUG=ON and rebuild to enable debug level logging");
-		}
-	}
+		}	
 #endif
-
+	}
 	{
 		FILE* tryFMU = fopen(cdata->FMUPath, "r");
 		if(tryFMU == 0) {
