@@ -87,7 +87,7 @@ endif()
 if("${FMUCHK_FMIL_HOME_DIR}" STREQUAL "${no_fmil}")
 set(download_fmil_message
 "\nYou are using the default settings for FMUCHK_FMIL_HOME_DIR.
-Please, download FMI Library sources from http://www.jmodelica.org/FMILibrary.
+Please, download FMI Library sources from <http://www.fmi-library.org>.
 Then set the FMUCHK_FMIL_HOME_DIR to point to the download location and reconfigure.
 If using command line run:
 	cmake -DFMUCHK_FMIL_HOME_DIR=<FMIL sources> <FMUChecker source dir>
