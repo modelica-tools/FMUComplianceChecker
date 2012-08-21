@@ -38,6 +38,8 @@ Options:
 
 -h <stepSize>    Step size to use in forward Euler. Takes preference over '-n'.
 
+-i               Print enums and booleans as integers (default is to print item names, true and false).
+
 -l <log level>   Log level: 0 - no logging, 1 - fatal errors only,
                  2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.
 
@@ -54,6 +56,9 @@ Options:
 
 -x               Check XML and stop. Default is to load the DLL and simulate
                  after this.
+
+-z <unzip-dir>   Do not create and remove temp directory but use the specified one
+                 for unpacking the FMU. The option takes precendence over -t.
 
 Command line examples:
 

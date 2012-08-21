@@ -11,7 +11,7 @@ Note that FMUChecker depends on FMI Library, that needs to be downloaded
 separately from <http://www.fmi-standard.org>, or alternatively, from
 <http://www.fmi-library.org>. For more information on FMI Library, see
 <http://www.fmi-library.org>. The current version of the FMUChecker
-depends on FMI Library v1.0.
+depends on FMI Library v1.0.1.
 
 The following FMUChecker specific build configuration options are provided:
 

@@ -1,6 +1,15 @@
 File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
 
+2012-08-22 Version 1.0.2
+- Fixed the bugs:
+  - parsing of 'Model' element in XML
+  - indexing of enum items
+- Improved CSV file output making sure it can be easily imported into Excel
+- Provided additional program options for convenience
+- Linux version now uses 'RTLD_NOW' mode for loading the FMU binary and
+  reports underfined symbols if there are such.
+
 2012-07-16 Version 1.0.1
 - Added output for the simulation start time
 - Improved simulation output file header. Alias information 
