@@ -8,7 +8,11 @@
 #   File: CMakeLists.txt
 #   Configuration and build script for the FMUChecker application.
 
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.8.6 FATAL_ERROR)
+# Prohibit in-source build
+IF("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+  message(FATAL_ERROR "In-source build is not supported. Please, use an empty directory for building the project.")
+ENDIF()
 project (FMIComplianceChecker)
 
 set(FMUCHK_HOME ${FMIComplianceChecker_SOURCE_DIR})
@@ -210,6 +214,7 @@ file(GLOB_RECURSE TEST_FMUS "${FMUCHK_TEST_FMUS_DIR_NORMALIZED}/*.fmu" )
 	   
 set(ALL_TEST_FMUS 
 	${FMUCHK_BUILD}/FMIL/build/testfolder/BouncingBall_cs.fmu
+	${FMUCHK_BUILD}/FMIL/build/testfolder/BouncingBall_cs_tc.fmu
 	${FMUCHK_BUILD}/FMIL/build/testfolder/BouncingBall_me.fmu
 	${TEST_FMUS})
 
