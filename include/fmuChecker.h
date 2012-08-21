@@ -45,6 +45,9 @@ typedef struct fmu_check_data_t {
 	const char* FMUPath;	
 	/** Temporary directory with unique name where FMU is unpacked */
 	char* tmpPath;
+    
+    /** Same as tmpPath unless specified by an option */
+    char* unzipPath;
 
 	/** Same as above with file:// prefix. Used for CS FMUs */
 	char fmuLocation[MAX_URL_LENGTH];
@@ -86,6 +89,8 @@ typedef struct fmu_check_data_t {
 	size_t numSteps;
 	/** separator character to use */
 	char CSV_separator;
+	/** print enums and bools as integers */
+	char out_enum_as_int_flag;
 	/** Name of the output file (NULL is stdout)*/
 	char* output_file_name;
 	/** Output file stream */
@@ -132,6 +137,12 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata);
 static int fmi1_status_ok_or_warning(fmi1_status_t fmistatus) {
 	return (fmistatus == fmi1_status_ok) || (fmistatus == fmi1_status_warning);
 }
+
+/** Print the string in double quotes replacing any occurence of '"' in the string with \' */
+jm_status_enu_t checked_print_quoted_str(fmu_check_data_t* cdata, const char* str);
+
+/** Write out the data into the output file */
+jm_status_enu_t checked_fprintf(fmu_check_data_t* cdata, const char* fmt, ...);
 
 /** Simulate an FMI 1.0 ME FMU */
 jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata);

@@ -215,11 +215,11 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 	} /* while */
 
 	if(!fmi1_status_ok_or_warning(fmistatus)) {
-		jm_log_fatal(cb, fmu_checker_module, "Simulation loop terminated since FMU returned status: %s", fmi1_status_to_string(fmistatus));
+		jm_log_fatal(cb, fmu_checker_module, "Simulation loop terminated at time %g since FMU returned status: %s", tcur, fmi1_status_to_string(fmistatus));
 		jmstatus = jm_status_error;
 	}
 	else if(jmstatus != jm_status_error) {
- 		jm_log_info(cb, fmu_checker_module, "Simulation finished successfully");
+		jm_log_info(cb, fmu_checker_module, "Simulation finished successfully at time %g", tcur);
 	}
 
 	if(  (fmistatus = fmi1_import_terminate(fmu)) != fmi1_status_ok) {

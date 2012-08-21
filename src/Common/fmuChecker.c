@@ -92,12 +92,15 @@ void print_usage( ) {
 		"-c <separator>\t Separator character to be used in CSV output. Default is ';'.\n\n"
 		"-e <filename>\t Error log file name. Default is to use standard error.\n\n"
 		"-h <stepSize>\t Step size to use in forward Euler. Takes preference over '-n'.\n\n"
+		"-i\t\t Print enums and booleans as integers (default is to print item names, true and false).\n\n" 
 		"-l <log level>\t Log level: 0 - no logging, 1 - fatal errors only,\n\t\t 2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.\n\n"
 		"-n <num_steps>\t Number of steps in forward Euler until time end.\n\t\t Default is 100 steps simulation between start and stop time.\n\n"
 		"-o <filename>\t Simulation result output file name. Default is to use standard output.\n\n"
 		"-s <stopTime>\t Simulation stop time, default is to use information from\n\t\t'DefaultExperiment' as specified in the model description XML.\n\n"
 		"-t <tmp-dir>\t Temporary dir to use for unpacking the FMU.\n\t\t Default is to use system-wide directory, e.g., C:\\Temp.\n\n"
 		"-x\t\t Check XML and stop, default is to load the DLL and simulate\n\t\t after this.\n\n"
+        "-z <unzip-dir>\t Do not create and remove temp directory but use the specified one\n"
+					"\t\t for unpacking the FMU. The option takes precendence over -t.\n\n"
 		"Command line examples:\n\n"
 		"fmuCheck." FMI_PLATFORM " model.fmu \n"
 		"\tThe checker will process 'model.fmu'  with default options.\n\n"
@@ -200,7 +203,17 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			i++;
 			cdata->temp_dir = argv[i];
 			break;
+
+		case 'i': { /* "Print enums and booleans as integers (default is to print item names, true and false)." */            
+            cdata->out_enum_as_int_flag = 1;
+            break;
+        }            
 				  }
+        case 'z': { /* "-z <unzip-dir>\t Do not create temp directory but use the specified one\n\t\t for unpacking the FMU The option takes precendence over -t." */
+            i++;
+            cdata->unzipPath = argv[i];
+            break;
+        }            
 		default:
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Unsupported command line option %s.\nRun without arguments to see help.", option);
 			do_exit(1);
@@ -248,11 +261,13 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		cdata->temp_dir = jm_get_system_temp_dir();
 		if(!cdata->temp_dir) cdata->temp_dir = "./";
 	}
-	{
+    if(cdata->unzipPath) {
+        cdata->tmpPath = cdata->unzipPath;        
+    }
+    else {
 		/* Now construct an unique directory to unpack the FMU. Save the path as a location as well. */
 		const char * tmpl = "/fmutmpXXXXXX";
-		const char * locationPrefix = "file://";
-		size_t len, locationLen;
+		size_t len;
 
 		char curDir[FILENAME_MAX + 2], tmpDir[FILENAME_MAX + 2];
 
@@ -295,8 +310,11 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			cdata->callbacks.free(cdata->tmpPath);
 			do_exit(1);
 		}
-
-		locationLen = strlen(cdata->tmpPath) + strlen(locationPrefix) + 1;
+    }
+    /* constuct fmuLocation string */
+    {
+        const char * locationPrefix = "file://";
+        size_t	locationLen = strlen(cdata->tmpPath) + strlen(locationPrefix) + 1;
 
 		if(locationLen > MAX_URL_LENGTH - 1) {
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Can not handle path longer than %d", locationLen);
@@ -330,10 +348,45 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 	}
 }
 
+jm_status_enu_t checked_print_quoted_str(fmu_check_data_t* cdata, const char* str) {
+	jm_status_enu_t status = jm_status_success;
+    if(!str) return status;
+	if(strchr(str, '"')) {
+		/* replace double quotes with single quotes */
+		char* buf = strdup(str);
+		char * ch = strchr(buf, '"');
+		while(ch) {
+			*ch = '\'';
+			ch = strchr(ch + 1, '"');
+		}
+		status = checked_fprintf(cdata, "\"%s\"", buf);
+		free(buf);
+	}
+	else
+		status = checked_fprintf(cdata, "\"%s\"", str);
+
+	return status;
+}
+
+
+jm_status_enu_t checked_fprintf(fmu_check_data_t* cdata, const char* fmt, ...) {
+	jm_status_enu_t status = jm_status_success;
+	va_list args; 
+    va_start (args, fmt); 
+	if(vfprintf(cdata->out_file, fmt, args) <= 0) {
+		jm_log_fatal(&cdata->callbacks, fmu_checker_module, "Error writing output file (%s)", strerror(errno));
+		status = jm_status_error;
+	}
+    va_end (args); 
+	return status;
+}
+
+
 void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->FMUPath = 0;
 	cdata->tmpPath = 0;
 	cdata->temp_dir = 0;
+    cdata->unzipPath = 0;
 
 	cdata->num_errors = 0;
 	cdata->num_warnings = 0;
@@ -360,6 +413,7 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->stepSize = 0.0;
 	cdata->numSteps = 100;
 	cdata->CSV_separator = ';';
+	cdata->out_enum_as_int_flag = 0;
 	cdata->output_file_name = 0;
 	cdata->out_file = stdout;
 	cdata->log_file_name = 0;
@@ -384,7 +438,7 @@ void clear_fmu_check_data(fmu_check_data_t* cdata, int close_log) {
 		fmi_import_free_context(cdata->context);
 		cdata->context = 0;
 	}
-	if(cdata->tmpPath) {
+    if(cdata->tmpPath && (cdata->tmpPath != cdata->unzipPath)) {
 		jm_rmdir(&cdata->callbacks,cdata->tmpPath);
 		cdata->callbacks.free(cdata->tmpPath);
 		cdata->tmpPath = 0;

@@ -184,40 +184,34 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 		return fmi1_cs_simulate(cdata);
 }
 
-jm_status_enu_t checked_fprintf(fmu_check_data_t* cdata, const char* fmt, ...) {
-	jm_status_enu_t status = jm_status_success;
-	va_list args; 
-    va_start (args, fmt); 
-	if(vfprintf(cdata->out_file, fmt, args) <= 0) {
-		jm_log_fatal(&cdata->callbacks, fmu_checker_module, "Error writing output file (%s)", strerror(errno));
-		status = jm_status_error;
-	}
-    va_end (args); 
-	return status;
-}
 
 jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 	fmi1_import_variable_list_t * vl = cdata->vl;
 	size_t i;
 	size_t n = fmi1_import_get_variable_list_size(vl);
+	char replace_sep = ':';
 	
-	if(checked_fprintf(cdata,"time%c", cdata->CSV_separator) != jm_status_success) {
+	if(cdata->CSV_separator == ':') {
+		replace_sep = '|';
+	}
+
+	if(checked_fprintf(cdata,"time") != jm_status_success) {
 		return jm_status_error;
 	}
 
 	for(i = 0; i < n; i++) {
+		char buf[10000], *cursrc, *curdest;
 		fmi1_import_variable_t * v = fmi1_import_get_variable(vl, i);
 		const char* vn = fmi1_import_get_variable_name(v);
 		fmi1_import_variable_t * vb = fmi1_import_get_variable_alias_base(cdata->fmu1, v);
 		jm_status_enu_t status = jm_status_success;
 		switch(fmi1_import_get_variable_alias_kind(v)) {
 			case fmi1_variable_is_not_alias:
-				status = checked_fprintf(cdata, "%s%c", vn, cdata->CSV_separator);
+				sprintf(buf, "%s", vn);
 				break;
 			case fmi1_variable_is_negated_alias: {
 				fmi1_base_type_enu_t btype = fmi1_import_get_variable_base_type(v);
-				status = checked_fprintf(cdata, "%s=-%s%c", 
-					vn, fmi1_import_get_variable_name(vb), cdata->CSV_separator);
+				sprintf(buf, "%s=-%s", 	vn, fmi1_import_get_variable_name(vb));
 				if( btype == fmi1_base_type_enum) {
 					jm_log_error(&cdata->callbacks, fmu_checker_module, "Negated alias is not meaningful for enum variable %s. Ignoring.", vn);
 				}
@@ -227,12 +221,25 @@ jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 				break;
 			}
 			case fmi1_variable_is_alias:
-				status = checked_fprintf(cdata, "%s=%s%c", 
-					vn, fmi1_import_get_variable_name(vb), cdata->CSV_separator);
+				sprintf(buf, "%s=%s", vn, fmi1_import_get_variable_name(vb));
 				break;
 			default:
 				assert(0);
 			}
+		/* skip spaces ans repace separator character in column names */
+		curdest = cursrc = buf;
+		while(*cursrc) {
+			if(*cursrc != ' ') {
+				if(*cursrc == cdata->CSV_separator)
+					*curdest = replace_sep;
+				else if(curdest != cursrc)
+					*curdest = *cursrc;
+				curdest++;
+			}
+			cursrc++;
+		}
+		*curdest = 0;
+		status = checked_fprintf(cdata, "%c%s", cdata->CSV_separator, buf);
 		if(status != jm_status_success) {
 			return jm_status_error;
 		}
@@ -253,18 +260,25 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 	size_t i;
 	size_t n = fmi1_import_get_variable_list_size(vl);
 
+	char fmt_sep[2];
 	char fmt_r[20];
 	char fmt_i[20];
-	char fmt_s[20];
 	char fmt_true[20];
 	char fmt_false[20];
-	sprintf(fmt_r, "%s%c", "%g", cdata->CSV_separator);
-	sprintf(fmt_i, "%s%c", "%d", cdata->CSV_separator);
-	sprintf(fmt_s, "%s%c", "%s", cdata->CSV_separator);
-	sprintf(fmt_true, "true%c", cdata->CSV_separator);
-	sprintf(fmt_false, "false%c", cdata->CSV_separator);
+	fmt_sep[0] = cdata->CSV_separator; fmt_sep[1] = 0;
+	sprintf(fmt_r, "%c%s", cdata->CSV_separator, "%g");
+	sprintf(fmt_i, "%c%s", cdata->CSV_separator, "%d");
+	if(cdata->out_enum_as_int_flag) {
+		sprintf(fmt_true, "%c1", cdata->CSV_separator);
+		sprintf(fmt_false, "%c0", cdata->CSV_separator);
+	}
+	else
+	{
+		sprintf(fmt_true, "%ctrue", cdata->CSV_separator);
+		sprintf(fmt_false, "%cfalse", cdata->CSV_separator);
+	}
 
-	if(checked_fprintf(cdata, fmt_r, time) != jm_status_success) {
+	if(checked_fprintf(cdata, "%g", time) != jm_status_success) {
 		return jm_status_error;
 	}
 
@@ -295,6 +309,7 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 				fmi1_boolean_t val;
 				char* fmt;
 				fmistatus = fmi1_import_get_boolean(fmu,&vr, 1, &val);
+				
 				if(fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias)
 					fmt = (val == fmi1_false) ? fmt_true:fmt_false;
 				else
@@ -305,8 +320,10 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 		case fmi1_base_type_str:
 			{
 				fmi1_string_t val;
+				
 				fmistatus = fmi1_import_get_string(fmu,&vr, 1, &val);
-				outstatus = checked_fprintf(cdata, fmt_s, val);
+				checked_fprintf(cdata, fmt_sep);
+				outstatus = checked_print_quoted_str(cdata, val);
 				break;
 			}
 		case fmi1_base_type_enum:
@@ -322,10 +339,13 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 				if(et) itname = fmi1_import_get_enum_type_item_name(et, val);
 				if(!itname) {
 					jm_log_error(cb, fmu_checker_module, "Could not get item name for enum variable %s", fmi1_import_get_variable_name(v));
+				}
+				if(cdata->out_enum_as_int_flag || !itname) {
 					outstatus = checked_fprintf(cdata, fmt_i, val);
 				}
 				else {
-					outstatus = checked_fprintf(cdata, fmt_s, itname);
+					checked_fprintf(cdata, fmt_sep);
+					outstatus = checked_print_quoted_str(cdata, itname);
 				}
 				break;
 			}
