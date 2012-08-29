@@ -3,8 +3,23 @@ Build instructions for FMI Compliance Checker (FMUChecker) application.
 
 FMUChecker build system utilizes CMake (see <http://www.cmake.org/>)
 to generate the native build scripts for the application.
-It is recommended to use "cmake-gui" on Windows or "ccmake" to configure
-the build. The primary target of the library build script is a command-line
+It is recommended to use "cmake-gui" on Windows or "ccmake"
+to configure the build. 
+
+To build from a terminal command line on Linux or Mac with default settings use:
+\code
+	mkdir build; cd build
+	cmake <checker dir>
+	make install test
+\endcode
+To build in MSYS terminal with g++/gcc on Windows:
+\code
+	mkdir build; cd build
+	cmake -G "MSYS Makefiles" <checker dir>
+	make install test
+\endcode
+
+The primary target of the library build script is a command-line
 executable:  <prefix>/bin/fmuChecket.<platform>[.extention]
 
 Note that FMUChecker depends on FMI Library, that needs to be downloaded

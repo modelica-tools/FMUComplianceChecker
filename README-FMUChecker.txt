@@ -38,7 +38,8 @@ Options:
 
 -h <stepSize>    Step size to use in forward Euler. Takes preference over '-n'.
 
--i               Print enums and booleans as integers (default is to print item names, true and false).
+-i               Print enums and booleans as integers (default is to print item 
+				names, true and false).
 
 -l <log level>   Log level: 0 - no logging, 1 - fatal errors only,
                  2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.
@@ -46,7 +47,8 @@ Options:
 -n <num_steps>   Number of steps in forward Euler until time end.
                  Default is 100 steps simulation between start and stop time.
 
--o <filename>    Simulation result output file name. Default is to use standard output.
+-o <filename>    Simulation result output file name. Default is to use standard 
+				output.
 
 -s <stopTime>    Simulation stop time, default is to use information from
                 'DefaultExperiment' as specified in the model description XML.
@@ -57,13 +59,14 @@ Options:
 -x               Check XML and stop. Default is to load the DLL and simulate
                  after this.
 
--z <unzip-dir>   Do not create and remove temp directory but use the specified one
-                 for unpacking the FMU. The option takes precendence over -t.
+-z <unzip-dir>   Do not create and remove temp directory but use the specified 
+				one for unpacking the FMU. The option takes precendence over -t.
 
 Command line examples:
 
 fmuCheck.win32 model.fmu 
-        The checker on win32 platform will process "model.fmu"  with default options.
+        The checker on win32 platform will process "model.fmu"  with default 
+		options.
                 
 fmuCheck.win64 -e log.txt -o result.csv -c , -s 2 -h 1e-3 -l 5 -t . model.fmu 
         The checker on win64 platform will process "model.fmu". The log 
