@@ -106,8 +106,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 	hcur = hdef;
 	callEventUpdate = fmi1_false;
 
-	jm_log_verbose(cb, fmu_checker_module, "Writing simulation output for start time");
-	if(fmi1_write_csv_data(cdata, tstart) != jm_status_success) {
+	if((jmstatus != jm_status_error) && (fmi1_write_csv_data(cdata, tstart) != jm_status_success)) {
 		jmstatus = jm_status_error;
 	}
 	else while ((tcur < tend) && fmi1_status_ok_or_warning(fmistatus) ) {
