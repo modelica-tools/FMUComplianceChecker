@@ -265,78 +265,10 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
         cdata->tmpPath = cdata->unzipPath;        
     }
     else {
-		/* Now construct an unique directory to unpack the FMU. Save the path as a location as well. */
-		const char * tmpl = "/fmutmpXXXXXX";
-		size_t len;
-
-		char curDir[FILENAME_MAX + 2], tmpDir[FILENAME_MAX + 2];
-
-		len = strlen(cdata->temp_dir);
-
-		if( jm_portability_get_current_working_directory(curDir, FILENAME_MAX+1) != jm_status_success) {
-			jm_log_fatal(&cdata->callbacks,fmu_checker_module, "Could not get current working directory (%s)", strerror(errno));
-			do_exit(1);
-		};
-
-		if(jm_portability_set_current_working_directory((char*)cdata->temp_dir) != jm_status_success) {
-			jm_log_fatal(&cdata->callbacks,fmu_checker_module, "Could not change to the temporary files directory %s", cdata->temp_dir);
-			jm_portability_set_current_working_directory(curDir);
-			do_exit(1);
-		}
-		if( jm_portability_get_current_working_directory(tmpDir, FILENAME_MAX+1) != jm_status_success) {
-			jm_log_fatal(&cdata->callbacks,fmu_checker_module, "Could not get canonical name for the temporary files directory (%s)", strerror(errno));
-			jm_portability_set_current_working_directory(curDir);
-			do_exit(1);
-		};
-
-		jm_portability_set_current_working_directory(curDir);
-
-		len = strlen(tmpDir);
-		if((tmpDir[len-1] == tmpl[0]) || (tmpDir[len-1] == '/') || (tmpDir[len-1] == FMI_FILE_SEP[0]))
-			tmpl++;
-		cdata->tmpPath = (char*)cdata->callbacks.malloc(len + strlen(tmpl) + 1);
-		if(!cdata->tmpPath) {
-			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not allocate memory");
-			do_exit(1);
-		}
-		sprintf(cdata->tmpPath,"%s%s",tmpDir,tmpl);
-
-		if(!jm_mktemp(cdata->tmpPath)) {
-			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not create a unique temporary directory name");
-			cdata->callbacks.free(cdata->tmpPath);
-			do_exit(1);
-		}
-		if(jm_mkdir(&cdata->callbacks,cdata->tmpPath) != jm_status_success) {
-			cdata->callbacks.free(cdata->tmpPath);
-			do_exit(1);
-		}
+		cdata->tmpPath = fmi_import_mk_temp_dir(&cdata->callbacks, cdata->temp_dir, "fmucktmp");
     }
-    /* constuct fmuLocation string */
-    {
-        const char * locationPrefix = "file://";
-        size_t	locationLen = strlen(cdata->tmpPath) + strlen(locationPrefix) + 1;
-
-		if(locationLen > MAX_URL_LENGTH - 1) {
-			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Can not handle path longer than %d", locationLen);
-			do_exit(1);
-		}
-		
-		sprintf(cdata->fmuLocation,"file://%s",cdata->tmpPath);
-
-#if defined(_WIN32) || defined(WIN32)
-		{
-			DWORD pathLen = MAX_URL_LENGTH;
-			HRESULT code = UrlCreateFromPathA(
-				cdata->tmpPath,
-				cdata->fmuLocation,
-				&pathLen,
-				0);
-			if( (code != S_FALSE) && (code != S_OK)) {
-				jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not constuct file URL from path %s", cdata->tmpPath);
-				do_exit(1);
-			}
-		}
-#endif
+	if(!cdata->tmpPath) {
+		do_exit(1);
 	}
 	if(cdata->output_file_name) {
 		cdata->out_file = fopen(cdata->output_file_name, "w");
@@ -353,7 +285,11 @@ jm_status_enu_t checked_print_quoted_str(fmu_check_data_t* cdata, const char* st
     if(!str) return status;
 	if(strchr(str, '"')) {
 		/* replace double quotes with single quotes */
+#ifdef _MSC_VER
+		char* buf = _strdup(str);
+#else
 		char* buf = strdup(str);
+#endif
 		char * ch = strchr(buf, '"');
 		while(ch) {
 			*ch = '\'';

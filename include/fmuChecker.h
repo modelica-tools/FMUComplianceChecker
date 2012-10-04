@@ -49,9 +49,6 @@ typedef struct fmu_check_data_t {
     /** Same as tmpPath unless specified by an option */
     char* unzipPath;
 
-	/** Same as above with file:// prefix. Used for CS FMUs */
-	char fmuLocation[MAX_URL_LENGTH];
-
 	/** Directory to be used for temporary files. Either user specified or system-wide*/
 	const char* temp_dir;
 

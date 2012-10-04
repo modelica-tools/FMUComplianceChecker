@@ -55,9 +55,7 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 	}
 
 	cdata->instanceName = "Test FMI 1.0 CS";
-	jm_log_verbose(cb, fmu_checker_module, "Checker will instantiate the slave with \n"
-		"\tFMU location ='%s'\n\tMIME type = '%s'", cdata->fmuLocation, mimeType);
-	jmstatus = fmi1_import_instantiate_slave(fmu, cdata->instanceName, cdata->fmuLocation, mimeType, timeout, visible, interactive);
+	jmstatus = fmi1_import_instantiate_slave(fmu, cdata->instanceName, 0, mimeType, timeout, visible, interactive);
 	if (jmstatus == jm_status_error) {
 		jm_log_fatal(cb, fmu_checker_module, "Could not instantiate the model");
 		return jm_status_error;
