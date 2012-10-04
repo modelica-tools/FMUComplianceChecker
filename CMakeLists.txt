@@ -107,7 +107,7 @@ set(FMI_STANDARD_HEADERS_DIR ${FMUCHK_FMI_STANDARD_HEADERS})
 string(REPLACE " " "" tmp "${FMI_STANDARD_HEADERS_DIR}")
 string(REPLACE "\t" "" tmp "${tmp}")
 if("${tmp}" STREQUAL "")
-	set(FMI_STANDARD_HEADERS_DIR ${FMUCHK_FMIL_HOME_DIR}/ThirdParty/FMI/standard32)
+	set(FMI_STANDARD_HEADERS_DIR ${FMUCHK_FMIL_HOME_DIR}/ThirdParty/FMI/default)
 endif()
 message(STATUS "Will use standard headers from:\n ${FMI_STANDARD_HEADERS_DIR}")
 # Add FMIL as imported library
