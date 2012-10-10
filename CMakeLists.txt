@@ -255,7 +255,7 @@ endif()
 
 add_test(
 	NAME check_with_default_params 
-	COMMAND ${fmuCheck}  ${FMUCHK_BUILD}/FMIL/build/testfolder/BouncingBall_cs.fmu)
+	COMMAND ${fmuCheck}  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs.fmu)
 
 foreach(fmu ${ALL_TEST_FMUS})
 	string(REPLACE "/" "_" testname "check_${fmu}")
