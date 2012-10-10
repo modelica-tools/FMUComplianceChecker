@@ -213,9 +213,9 @@ file(TO_CMAKE_PATH ${FMUCHK_TEST_FMUS_DIR} FMUCHK_TEST_FMUS_DIR_NORMALIZED)
 file(GLOB_RECURSE TEST_FMUS "${FMUCHK_TEST_FMUS_DIR_NORMALIZED}/*.fmu" )
 	   
 set(ALL_TEST_FMUS 
-	${FMUCHK_BUILD}/FMIL/build/testfolder/BouncingBall_cs.fmu
-	${FMUCHK_BUILD}/FMIL/build/testfolder/BouncingBall_cs_tc.fmu
-	${FMUCHK_BUILD}/FMIL/build/testfolder/BouncingBall_me.fmu
+	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs.fmu
+	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs_tc.fmu
+	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_me.fmu
 	${TEST_FMUS})
 
 ENABLE_TESTING()

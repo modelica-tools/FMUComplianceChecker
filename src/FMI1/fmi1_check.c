@@ -187,8 +187,8 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 
 jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 	fmi1_import_variable_list_t * vl = cdata->vl;
-	size_t i;
-	size_t n = fmi1_import_get_variable_list_size(vl);
+	unsigned i, n = (unsigned)fmi1_import_get_variable_list_size(vl);
+
 	char replace_sep = ':';
 	
 	if(cdata->CSV_separator == ':') {
@@ -257,8 +257,7 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 	jm_callbacks* cb = &cdata->callbacks;
 	fmi1_status_t fmistatus = fmi1_status_ok;
 	jm_status_enu_t outstatus = jm_status_success;
-	size_t i;
-	size_t n = fmi1_import_get_variable_list_size(vl);
+	unsigned i, n = (unsigned)fmi1_import_get_variable_list_size(vl);
 
 	char fmt_sep[2];
 	char fmt_r[20];
