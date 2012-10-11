@@ -153,8 +153,8 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 	}
 
 
-	callBackFunctions.allocateMemory = cb->calloc;
-	callBackFunctions.freeMemory = cb->free;
+	callBackFunctions.allocateMemory = check_calloc;
+	callBackFunctions.freeMemory = check_free;
 	callBackFunctions.logger = fmi1_checker_logger;
 	callBackFunctions.stepFinished = 0;
 
@@ -164,7 +164,9 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 		jm_log_fatal(cb,fmu_checker_module,"Could not create the DLL loading mechanism(C-API).");
 		return jm_status_error;
 	}
-
+	if(cdata->tmpPath == cdata->unzipPath) {
+		fmi1_import_set_debug_mode(cdata->fmu1, 1);
+	}
 	jm_log_info(cb,fmu_checker_module,"Version returned from FMU:   %s\n", fmi1_import_get_version(cdata->fmu1));
 
 	{

@@ -25,9 +25,6 @@ void do_exit(int code);
 /** Global variable used for checking alloc/free consistency */
 extern int allocated_mem_blocks;
 
-/** malloc proxy */
-void* check_malloc(size_t size);
-
 /** calloc proxy */
 void* check_calloc(size_t nobj, size_t size);
 

@@ -38,15 +38,11 @@ void do_exit(int code)
 
 int allocated_mem_blocks = 0;
 
-void* check_malloc(size_t size) {
-	void* ret = malloc(size);
-	if(ret) allocated_mem_blocks++;
-	return ret;
-}
-
 void* check_calloc(size_t nobj, size_t size) {
 	void* ret = calloc(nobj, size);
 	if(ret) allocated_mem_blocks++;
+	jm_log_verbose(&cdata_global_ptr->callbacks, fmu_checker_module, 
+		"allocateMemory( %u, %u) called. Returning pointer: %p",nobj,size,ret);
 	return ret;
 }
 
@@ -55,6 +51,7 @@ void  check_free(void* obj) {
 		free(obj);
 		allocated_mem_blocks--;
 	}
+	jm_log_verbose(&cdata_global_ptr->callbacks, fmu_checker_module, "freeMemory(%p) called", obj);
 }
 
 void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_level, jm_string message) {
@@ -330,10 +327,10 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->num_fmu_messages = 0;
 	cdata->printed_instance_name_error_flg = 0;
 
-	cdata->callbacks.malloc = check_malloc;
-    cdata->callbacks.calloc = check_calloc;
+	cdata->callbacks.malloc = malloc;
+    cdata->callbacks.calloc = calloc;
     cdata->callbacks.realloc = realloc;
-    cdata->callbacks.free = check_free;
+    cdata->callbacks.free = free;
     cdata->callbacks.logger = checker_logger;
 	cdata->callbacks.log_level = jm_log_level_info;
     cdata->callbacks.context = cdata;
