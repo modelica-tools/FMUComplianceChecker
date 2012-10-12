@@ -215,14 +215,16 @@ install(TARGETS ${fmuCheck} DESTINATION ${FMUCHK_INSTALL_PREFIX})
 file(TO_CMAKE_PATH ${FMUCHK_TEST_FMUS_DIR} FMUCHK_TEST_FMUS_DIR_NORMALIZED)
 file(GLOB_RECURSE TEST_FMUS "${FMUCHK_TEST_FMUS_DIR_NORMALIZED}/*.fmu" )
 	   
+set(BAD_FMUS 
+	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_malformed_mf.fmu
+	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_malformed_mf.fmu)
+
 set(ALL_TEST_FMUS 
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs.fmu
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs_tc.fmu
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_me.fmu
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_cs.fmu
-	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_malformed_mf.fmu
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_me.fmu
-	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_malformed_mf.fmu
 	${TEST_FMUS})
 
 ENABLE_TESTING()
@@ -263,6 +265,16 @@ endif()
 add_test(
 	NAME check_with_default_params 
 	COMMAND ${fmuCheck}  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs.fmu)
+
+foreach(fmu ${BAD_FMUS})
+	string(REPLACE "/" "_" testname "check_${fmu}")
+	string(REPLACE ":" "_" testname ${testname})
+	add_test(
+		NAME ${testname}
+		WORKING_DIRECTORY ${TEST_OUT_DIR}
+		COMMAND ${fmuCheck} -t ${TEST_OUT_DIR} -l 6 -o ${testname}.csv -e ${testname}.log ${fmu} )
+    set_tests_properties(${testname} PROPERTIES WILL_FAIL TRUE)
+endforeach(fmu)
 
 foreach(fmu ${ALL_TEST_FMUS})
 	string(REPLACE "/" "_" testname "check_${fmu}")
