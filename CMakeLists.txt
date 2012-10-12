@@ -188,6 +188,9 @@ set(SOURCE
 	${FMUCHK_HOME}/src/FMI1/fmi1_check.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_me_sim.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_cs_sim.c
+	${FMUCHK_HOME}/src/FMI2/fmi2_check.c
+	${FMUCHK_HOME}/src/FMI2/fmi2_me_sim.c
+	${FMUCHK_HOME}/src/FMI2/fmi2_cs_sim.c
 	)
 set(HEADERS 
 	${FMUCHK_HOME}/include/fmuChecker.h)
@@ -216,6 +219,10 @@ set(ALL_TEST_FMUS
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs.fmu
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs_tc.fmu
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_me.fmu
+	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_cs.fmu
+	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_malformed_mf.fmu
+	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_me.fmu
+	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_malformed_mf.fmu
 	${TEST_FMUS})
 
 ENABLE_TESTING()

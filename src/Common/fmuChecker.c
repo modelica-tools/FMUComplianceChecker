@@ -337,7 +337,9 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 
 	cdata->context = 0;
 
-	cdata->modelIdentifier = 0;
+	cdata->modelIdentifierFMI1 = 0;
+	cdata->modelIdentifierME = 0;
+	cdata->modelIdentifierCS = 0;
 	cdata->modelName = 0;
 	cdata->GUID = 0;
 	cdata->instanceName = 0;
@@ -420,6 +422,9 @@ int main(int argc, char *argv[])
 	switch(cdata.version) {
 	case  fmi_version_1_enu:
 		status = fmi1_check(&cdata);
+		break;
+	case  fmi_version_2_0_enu:
+		status = fmi2_check(&cdata);
 		break;
 	default:
 		clear_fmu_check_data(&cdata, 1);

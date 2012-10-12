@@ -70,7 +70,9 @@ typedef struct fmu_check_data_t {
 	fmi_import_context_t* context;
 
 	/** Model information */
-	const char* modelIdentifier;
+	const char* modelIdentifierFMI1;
+	const char* modelIdentifierME;
+	const char* modelIdentifierCS;
 	const char* modelName;
 	const char*  GUID;
 	const char* instanceName;
@@ -106,6 +108,13 @@ typedef struct fmu_check_data_t {
 	fmi1_fmu_kind_enu_t fmu1_kind;
 	/** model variables */
 	fmi1_import_variable_list_t* vl;
+
+	/** FMI2 main struct */
+	fmi2_import_t* fmu2;
+	/** Kind of the FMI */
+	fmi2_fmu_kind_enu_t fmu2_kind;
+	/** model variables */
+	fmi2_import_variable_list_t* vl2;
 } fmu_check_data_t;
 
 
@@ -148,5 +157,22 @@ jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata);
 
 jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time);
 
+/** Check an FMI 2.0 FMU */
+jm_status_enu_t fmi2_check(fmu_check_data_t* cdata);
+
+/** Simulate an FMI 2.0 ME FMU */
+jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata);
+
+/** Simulate an FMI 2.0 CS FMU */
+jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata);
+
+jm_status_enu_t fmi2_write_csv_header(fmu_check_data_t* cdata);
+
+jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time);
+
+/** Check if the fmi status is ok or warning */
+static int fmi2_status_ok_or_warning(fmi2_status_t fmistatus) {
+	return (fmistatus == fmi2_status_ok) || (fmistatus == fmi2_status_warning);
+}
 
 #endif

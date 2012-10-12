@@ -90,12 +90,12 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 		return jm_status_error;
 	}
 
-	cdata->modelIdentifier = fmi1_import_get_model_identifier(cdata->fmu1);
+	cdata->modelIdentifierFMI1 = fmi1_import_get_model_identifier(cdata->fmu1);
 	cdata->modelName = fmi1_import_get_model_name(cdata->fmu1);
 	cdata->GUID = fmi1_import_get_GUID(cdata->fmu1);
 
 	jm_log_info(cb, fmu_checker_module,"Model name: %s", cdata->modelName);
-    jm_log_info(cb, fmu_checker_module,"Model identifier: %s", cdata->modelIdentifier);
+    jm_log_info(cb, fmu_checker_module,"Model identifier: %s", cdata->modelIdentifierFMI1);
     jm_log_info(cb, fmu_checker_module,"Model GUID: %s", cdata->GUID);
     jm_log_info(cb, fmu_checker_module,"Model version: %s", fmi1_import_get_model_version(cdata->fmu1));
 
