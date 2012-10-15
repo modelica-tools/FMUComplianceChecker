@@ -15,7 +15,7 @@
 #include <fmuChecker.h>
 #include <fmilib.h>
 
-void  fmi2_checker_logger(fmi2_component_t c, fmi2_string_t instanceName, fmi2_status_t status, fmi2_string_t category, fmi2_string_t message, ...){
+void  fmi2_checker_logger(fmi2_component_environment_t c, fmi2_string_t instanceName, fmi2_status_t status, fmi2_string_t category, fmi2_string_t message, ...){
 
 	fmu_check_data_t* cdata = cdata_global_ptr;
 	fmi2_import_t* fmu = cdata->fmu2;
@@ -29,6 +29,10 @@ void  fmi2_checker_logger(fmi2_component_t c, fmi2_string_t instanceName, fmi2_s
 	assert(fmu);
 
 	if(!cdata->printed_instance_name_error_flg) {
+		if((void*)cdata != c) {
+			jm_log_error(cb, fmu_checker_module, "FMU logger callback does not propagate component environment to the application");
+			cdata->printed_instance_name_error_flg = 1;
+		}
 		if(strcmp(instanceName, cdata->instanceName) != 0) {
 			jm_log_error(cb, fmu_checker_module, "FMU does not utilize provided instance name (%s != %s)", cdata->instanceName, instanceName);
 			cdata->printed_instance_name_error_flg = 1;
@@ -121,7 +125,7 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 
     jm_log_info(cb, fmu_checker_module,"FMU kind: %s", fmi2_fmu_kind_to_string(cdata->fmu2_kind));
 
-	cdata->vl2 = fmi2_import_get_variable_list(cdata->fmu2);
+	cdata->vl2 = fmi2_import_get_variable_list(cdata->fmu2, 0);
 	if(!cdata->vl2) {
 		jm_log_fatal(cb, fmu_checker_module,"Could not construct model variables list");
 		return jm_status_error;
@@ -175,6 +179,7 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 	callBackFunctions.freeMemory = check_free;
 	callBackFunctions.logger = fmi2_checker_logger;
 	callBackFunctions.stepFinished = 0;
+	callBackFunctions.componentEnvironment = cdata;
 
 	if( (cdata->fmu2_kind == fmi2_fmu_kind_me) || (cdata->fmu2_kind == fmi2_fmu_kind_me_and_cs)) {
 		cdata->modelIdentifierME = fmi2_import_get_model_identifier_ME(cdata->fmu2);
@@ -189,7 +194,7 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 			if(cdata->tmpPath == cdata->unzipPath) {
 				fmi2_import_set_debug_mode(cdata->fmu2, 1);
 			}
-			jm_log_info(cb,fmu_checker_module,"Version returned from ME FMU:   %s\n", fmi2_import_get_version(cdata->fmu2));
+			jm_log_info(cb,fmu_checker_module,"Version returned from ME FMU: '%s'\n", fmi2_import_get_version(cdata->fmu2));
 
 			{
 				const char* platform;
@@ -197,7 +202,7 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 				platform= fmi2_import_get_types_platform(cdata->fmu2);
 
 				if(strcmp(platform, fmi2_get_types_platform())) 
-					jm_log_error(cb,fmu_checker_module,"Platform type returned from ME FMU %s does not match the checker  %s\n",platform, fmi2_get_types_platform() );
+					jm_log_error(cb,fmu_checker_module,"Platform type returned from ME FMU '%s' does not match the checker '%s'",platform, fmi2_get_types_platform() );
 			}
 
 			status = fmi2_me_simulate(cdata);
@@ -216,7 +221,7 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 			if(cdata->tmpPath == cdata->unzipPath) {
 				fmi2_import_set_debug_mode(cdata->fmu2, 1);
 			}
-			jm_log_info(cb,fmu_checker_module,"Version returned from CS FMU:   %s\n", fmi2_import_get_version(cdata->fmu2));
+			jm_log_info(cb,fmu_checker_module,"Version returned from CS FMU:   %s", fmi2_import_get_version(cdata->fmu2));
 
 			{
 				const char* platform;
@@ -224,7 +229,7 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 				platform= fmi2_import_get_types_platform(cdata->fmu2);
 
 				if(strcmp(platform, fmi2_get_types_platform())) 
-					jm_log_error(cb,fmu_checker_module,"Platform type returned from CS FMU %s does not match the checker  %s\n",platform, fmi2_get_types_platform() );
+					jm_log_error(cb,fmu_checker_module,"Platform type returned from CS FMU '%s' does not match the checker '%s'",platform, fmi2_get_types_platform() );
 			}
 
 			status = fmi2_cs_simulate(cdata);

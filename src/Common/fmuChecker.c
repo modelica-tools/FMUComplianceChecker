@@ -47,11 +47,11 @@ void* check_calloc(size_t nobj, size_t size) {
 }
 
 void  check_free(void* obj) {
+	jm_log_verbose(&cdata_global_ptr->callbacks, fmu_checker_module, "freeMemory(%p) called", obj);
 	if(obj) {
 		free(obj);
 		allocated_mem_blocks--;
 	}
-	jm_log_verbose(&cdata_global_ptr->callbacks, fmu_checker_module, "freeMemory(%p) called", obj);
 }
 
 void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_level, jm_string message) {
@@ -360,6 +360,10 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->fmu1 = 0;
 	cdata->fmu1_kind = fmi1_fmu_kind_enu_unknown;
 	cdata->vl = 0;
+    
+    cdata->fmu2 = 0;
+	cdata->fmu2_kind = fmi2_fmu_kind_unknown;
+    cdata->vl2 = 0;
 	assert(cdata_global_ptr == 0);
 	cdata_global_ptr = cdata;
 }
@@ -368,6 +372,10 @@ void clear_fmu_check_data(fmu_check_data_t* cdata, int close_log) {
 	if(cdata->fmu1) {
 		fmi1_import_free(cdata->fmu1);
 		cdata->fmu1 = 0;
+	}
+	if(cdata->fmu2) {
+		fmi2_import_free(cdata->fmu2);
+		cdata->fmu2 = 0;
 	}
 	if(cdata->context) {
 		fmi_import_free_context(cdata->context);
@@ -384,6 +392,10 @@ void clear_fmu_check_data(fmu_check_data_t* cdata, int close_log) {
 	if(cdata->vl) {
 		fmi1_import_free_variable_list(cdata->vl);
 		cdata->vl = 0;
+	}
+    if(cdata->vl2) {
+		fmi2_import_free_variable_list(cdata->vl2);
+		cdata->vl2 = 0;
 	}
 	if(close_log && cdata->log_file && (cdata->log_file != stderr)) {
 		fclose(cdata->log_file);

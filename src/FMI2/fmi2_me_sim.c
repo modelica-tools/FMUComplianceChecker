@@ -190,6 +190,14 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 				jmstatus = jm_status_error;
 				break;
 			}
+
+			if( fmi2_import_get_capability(fmu, fmi2_me_completedEventIterationIsProvided) &&
+				!fmi2_status_ok_or_warning(fmistatus = fmi2_import_completed_event_iteration(fmu))) {
+				jm_log_fatal(cb, fmu_checker_module, "fmiCompletedEventIteration call  failed");
+				jmstatus = jm_status_error;
+				break;
+			}
+
 			if( eventInfo.stateValuesChanged &&
 				!fmi2_status_ok_or_warning(fmistatus = fmi2_import_get_continuous_states(fmu, states, n_states))) {
 				jm_log_fatal(cb, fmu_checker_module, "Could not get continuous states");
