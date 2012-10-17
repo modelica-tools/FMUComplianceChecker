@@ -29,7 +29,7 @@ REMOTEBUILDDIR=/tmp/FMUCheckerBuild
 FMIL_REPO="https://svn.jmodelica.org/FMILibrary/trunk"
 FMUCHK_REPO="https://svn.modelon.se/P533-FMIComplianceChecker/trunk"
 # the build dir will be removed with rm -rf if RMBUILDDIR="YES"
-RMBUILDDIR="YES"
+RMBUILDDIR="NO"
 ##########################################################################################
 # NO MORE SETTINGS - RUNNING
 ################################################################################################
@@ -48,14 +48,21 @@ if [ "$RMBUILDDIR" == "YES" ]; then
 	rm -rf $BUILDDIR >& /dev/null
 fi
 
-(mkdir $BUILDDIR && mkdir $BUILDDIR/build32 &&	mkdir $BUILDDIR/build64) >& /dev/null
+(mkdir $BUILDDIR && mkdir $BUILDDIR/build32 &&	mkdir $BUILDDIR/build64 && mkdir $BUILDDIR/build.msys32) >& /dev/null
 
 pushd $BUILDDIR
+# Build MSYS just for test
+cd build.msys32 || exit 1
+cmake -DFMUCHK_INSTALL_PREFIX="./install" -DFMUCHK_FMIL_HOME_DIR=$SRCDIR/FMIL $SRCDIR/FMUCHK -G "MSYS Makefiles" || exit 1
+cmake --build . --config MinSizeRel --target install || exit 1
+ctest -C MinSizeRel || exit 1
+cd ..
 # Build Win32
-cd build32
+cd build32 || exit 1
 cmake -DFMUCHK_FMIL_HOME_DIR=$SRCDIR/FMIL $SRCDIR/FMUCHK -G "$MSVC" || exit 1
 cmake --build . --config MinSizeRel --target install || exit 1
 ctest -C MinSizeRel || exit 1
+# Build Win64
 cd ..
 cd build64
 cmake -DFMUCHK_FMIL_HOME_DIR=$SRCDIR/FMIL $SRCDIR/FMUCHK -G "$MSVC64" || exit 1
@@ -69,6 +76,7 @@ ssh $LINUXHOST "mkdir $REMOTESRCDIR/FMIL >& /dev/null && svn co $FMIL_REPO $REMO
 ssh $LINUXHOST "cd $REMOTESRCDIR/FMIL && svn switch $FMIL_REPO && svn up" ||exit 1
 ssh $LINUXHOST "mkdir $REMOTESRCDIR/FMUCHK >& /dev/null && svn co $FMUCHK_REPO $REMOTESRCDIR/FMUCHK" || \
 ssh $LINUXHOST "cd $REMOTESRCDIR/FMUCHK && svn switch $FMUCHK_REPO && svn up" ||exit 1
+ssh iakov@192.168.56.101 "rm -rf $REMOTEBUILDDIR/install >& /dev/null"
 if [ "$RMBUILDDIR" == "YES" ]; then 
 	ssh $LINUXHOST "rm -rf $REMOTEBUILDDIR >& /dev/null"	
 fi
@@ -82,23 +90,30 @@ ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/build64; cmake -DFMUCHK_FMIL_HOME_D
 ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/build64; cmake --build . --target install"  || exit 1
 ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/build64; ctest" || exit 1
 
-scp $SRCDIR/FMUCHK/*-FMUChecker.txt iakov@192.168.56.101:$REMOTEBUILDDIR/install|| exit 1
+scp -r $SRCDIR/FMIL/ThirdParty/FMI/default $SRCDIR/FMUCHK/*-FMUChecker.txt iakov@192.168.56.101:$REMOTEBUILDDIR/install|| exit 1
+ssh iakov@192.168.56.101 "mv $REMOTEBUILDDIR/install/default $REMOTEBUILDDIR/install/include" || exit 1
 
 for platform in "linux32" "linux64" ; do 
-	ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/install; zip $FMUCHECKERVERSION-$platform.zip *-FMUChecker.txt fmuCheck.$platform"|| exit 1
+	ssh iakov@192.168.56.101 "mkdir $REMOTEBUILDDIR/install/$FMUCHECKERVERSION-$platform  >& /dev/null"
+	ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/install; cp -al include *-FMUChecker.txt fmuCheck.$platform $FMUCHECKERVERSION-$platform" || exit 1
+	ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/install; zip -r $FMUCHECKERVERSION-$platform.zip $FMUCHECKERVERSION-$platform"|| exit 1
 done
 
 # copy the results back
-scp iakov@192.168.56.101:$REMOTEBUILDDIR/install/\* $BUILDDIR/install
+scp iakov@192.168.56.101:$REMOTEBUILDDIR/install/\*.zip $BUILDDIR/install
 ls $BUILDDIR/install
 
 # now packaging
+cp -r $SRCDIR/FMIL/ThirdParty/FMI/default  $BUILDDIR/install
+mv $BUILDDIR/install/default $BUILDDIR/install/include
 cp $SRCDIR/FMUCHK/*-FMUChecker.txt $BUILDDIR/install
 svn export $SRCDIR/FMUCHK $BUILDDIR/install/$FMUCHECKERVERSION
 
 pushd $BUILDDIR/install
-for platform in "win32" "win64"; do 
-	7za a -tzip $FMUCHECKERVERSION-$platform.zip *-FMUChecker.txt fmuCheck.$platform*;
+for platform in "win32" "win64"; do
+	mkdir $FMUCHECKERVERSION-$platform  >& /dev/null
+	cp -r include *-FMUChecker.txt fmuCheck.$platform* $FMUCHECKERVERSION-$platform
+	7za a -tzip $FMUCHECKERVERSION-$platform.zip $FMUCHECKERVERSION-$platform
 done
 7za a -tzip $FMUCHECKERVERSION-src.zip $FMUCHECKERVERSION
 popd
