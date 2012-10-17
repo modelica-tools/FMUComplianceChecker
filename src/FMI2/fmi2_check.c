@@ -33,13 +33,13 @@ void  fmi2_checker_logger(fmi2_component_environment_t c, fmi2_string_t instance
 			jm_log_error(cb, fmu_checker_module, "FMU logger callback does not propagate component environment to the application");
 			cdata->printed_instance_name_error_flg = 1;
 		}
-		if(strcmp(instanceName, cdata->instanceName) != 0) {
-			jm_log_error(cb, fmu_checker_module, "FMU does not utilize provided instance name (%s != %s)", cdata->instanceName, instanceName);
+		if(strcmp(instanceName, cdata->instanceNameToCompare) != 0) {
+			jm_log_error(cb, fmu_checker_module, "FMU does not utilize provided instance name (%s != %s)", cdata->instanceNameToCompare, instanceName);
 			cdata->printed_instance_name_error_flg = 1;
 		}
-		else if(instanceName == cdata->instanceName) {
+		else if(instanceName == cdata->instanceNameSavedPtr) {
 			jm_log_error(cb, fmu_checker_module, "FMU does not make an internal copy of provided instance name (violation of fmiString handling)",
-				cdata->instanceName, instanceName);
+				cdata->instanceNameToCompare, instanceName);
 			cdata->printed_instance_name_error_flg = 1;
 		}
 	}

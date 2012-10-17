@@ -342,7 +342,8 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->modelIdentifierCS = 0;
 	cdata->modelName = 0;
 	cdata->GUID = 0;
-	cdata->instanceName = 0;
+	cdata->instanceNameSavedPtr = 0;
+	cdata->instanceNameToCompare = 0;
 
 	cdata->stopTime = 0.0;
 	cdata->stepSize = 0.0;

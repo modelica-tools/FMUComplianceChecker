@@ -7,26 +7,30 @@ It is recommended to use "cmake-gui" on Windows or "ccmake"
 to configure the build. 
 
 To build from a terminal command line on Linux or Mac with default settings use:
-\code
 	mkdir build; cd build
-	cmake <checker dir>
+	cmake -DFMUCHK_INSTALL_PREFIX=<dir name> <checker dir>
 	make install test
-\endcode
 To build in MSYS terminal with g++/gcc on Windows:
-\code
 	mkdir build; cd build
-	cmake -G "MSYS Makefiles" <checker dir>
+	cmake -DFMUCHK_INSTALL_PREFIX=<dir name> -G "MSYS Makefiles" <checker dir>
 	make install test
-\endcode
+To build from command line with Microsoft Visual Studio 10 compilers on Windows:
+	mkdir build; cd build
+	cmake -DFMUCHK_INSTALL_PREFIX=<dir name> -G "Visual Studio 10" <checker dir>	
+	cmake --build . --config MinSizeRel --target install
+The generated solution files can be used in the Microsoft Visual Studio IDE as
+well.
 
 The primary target of the library build script is a command-line
 executable:  <prefix>/bin/fmuChecket.<platform>[.extention]
+
+To specify alternative prefix use  The default installation directory is "../install"
 
 Note that FMUChecker depends on FMI Library, that needs to be downloaded
 separately from <http://www.fmi-standard.org>, or alternatively, from
 <http://www.fmi-library.org>. For more information on FMI Library, see
 <http://www.fmi-library.org>. The current version of the FMUChecker
-depends on FMI Library v1.0.1.
+depends on FMI Library v2.0a1.
 
 The following FMUChecker specific build configuration options are provided:
 
@@ -39,7 +43,7 @@ FMUCHK_FMIL_HOME_DIR - Path to the directory with FMIL sources
 	
 FMUCHK_FMI_STANDARD_HEADERS  - Path to the FMI standard headers directory. 
 	Leave empty to use the headers from FMIL, which is the default.
-	Header for specific standards files are expected in subdirectories 
+	Headers for specific standards versions are expected in subdirectories 
 	FMI1, FMI2, etc.
 	
 FMUCHK_ENABLE_LOG_LEVEL_DEBUG - Enable log level 'debug'. If the option 

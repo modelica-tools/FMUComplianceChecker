@@ -29,13 +29,13 @@ void  fmi1_checker_logger(fmi1_component_t c, fmi1_string_t instanceName, fmi1_s
 	assert(fmu);
 
 	if(!cdata->printed_instance_name_error_flg) {
-		if(strcmp(instanceName, cdata->instanceName) != 0) {
-			jm_log_error(cb, fmu_checker_module, "FMU does not utilize provided instance name (%s != %s)", cdata->instanceName, instanceName);
+		if(strcmp(instanceName, cdata->instanceNameToCompare) != 0) {
+			jm_log_error(cb, fmu_checker_module, "FMU does not utilize provided instance name (%s != %s)", cdata->instanceNameToCompare, instanceName);
 			cdata->printed_instance_name_error_flg = 1;
 		}
-		else if(instanceName == cdata->instanceName) {
+		else if(instanceName == cdata->instanceNameSavedPtr) {
 			jm_log_error(cb, fmu_checker_module, "FMU does not make an internal copy of provided instance name (violation of fmiString handling)",
-				cdata->instanceName, instanceName);
+				cdata->instanceNameToCompare, instanceName);
 			cdata->printed_instance_name_error_flg = 1;
 		}
 	}

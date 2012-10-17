@@ -37,8 +37,12 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 		hstep = (tend - tstart) / cdata->numSteps;
 	}
 
-	cdata->instanceName = "Test FMI 2.0 CS";
-	jmstatus = fmi2_import_instantiate_slave(fmu, cdata->instanceName, 0, visible);
+
+	cdata->instanceNameToCompare = "Test FMI 2.0 CS";
+	cdata->instanceNameSavedPtr = 0;
+	jmstatus = fmi2_import_instantiate_slave(fmu, cdata->instanceNameToCompare, 0, visible);
+	cdata->instanceNameSavedPtr = cdata->instanceNameToCompare;
+
 	if (jmstatus == jm_status_error) {
 		jm_log_fatal(cb, fmu_checker_module, "Could not instantiate the model");
 		return jm_status_error;
@@ -81,7 +85,33 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 		if((fmistatus == fmi2_status_ok) || (fmistatus == fmi2_status_warning)) {
 			fmistatus = fmi2_status_ok;
 		}
-		else 
+		else if(fmistatus == fmi2_status_discard) {
+			fmi2_boolean_t bstatus = fmi2_false;
+			fmi2_real_t lastTime;
+			fmistatus = fmi2_import_get_real_status(fmu, fmi2_last_successful_time, &lastTime);
+			if((fmistatus != fmi2_status_ok) && (fmistatus != fmi2_status_warning)) {
+				jm_log_error(cb, fmu_checker_module, "Could not retrive fmiLastSuccessfulTime status since FMU returned: %s",fmi2_status_to_string(fmistatus));
+			}
+			else 
+				tcur = lastTime;
+
+			fmistatus = fmi2_import_get_boolean_status(fmu, fmi2_terminated, &bstatus);
+			if((fmistatus != fmi2_status_ok) && (fmistatus != fmi2_status_warning)) 
+			{
+				jm_log_error(cb, fmu_checker_module, "Could not retrive fmiTerminated status since FMU returned: %s",fmi2_status_to_string(fmistatus));
+				jmstatus = jm_status_error;
+			}
+			else if(bstatus) {
+				jm_log_info(cb, fmu_checker_module, "FMU requests to terminate simulation at time %g", lastTime);
+				fmistatus = fmi2_status_ok;
+				break;
+			}
+			else {
+				fmistatus = fmi2_status_discard;
+				jmstatus = jm_status_error;
+			}
+		}
+		else
 			jmstatus = jm_status_error;
 	}
 
@@ -93,13 +123,17 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
  		 jm_log_info(cb, fmu_checker_module, "Simulation finished successfully at time %g", tcur);
 	}
 
-	fmistatus = fmi2_import_terminate_slave(fmu);
+	if(fmistatus != fmi2_status_fatal) {
+		fmistatus = fmi2_import_terminate_slave(fmu);
+	}
 
-	if(  fmistatus != fmi2_status_ok) {
+	if(  (fmistatus != fmi2_status_ok) && (fmistatus != fmi2_status_warning)) {
 		 jm_log_error(cb, fmu_checker_module, "fmiTerminateSlave returned status: %s", fmi2_status_to_string(fmistatus));
 	}
 
-	fmi2_import_free_slave_instance(fmu);
+	if(fmistatus != fmi2_status_fatal) {
+		fmi2_import_free_slave_instance(fmu);
+	}
 
 	return jmstatus;
 }

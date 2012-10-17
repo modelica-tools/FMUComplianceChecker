@@ -233,13 +233,17 @@ set(TEST_OUT_DIR ${FMUCHK_BUILD}/TestOutput)
 file(MAKE_DIRECTORY ${TEST_OUT_DIR}) 
 
 add_test(
-	NAME Build_before_test
-	COMMAND "${CMAKE_COMMAND}" --build ${FMUCHK_BUILD} --config $<CONFIGURATION>)
-
-add_test(
 	NAME Test_FMIL
 	WORKING_DIRECTORY ${FMUCHK_BUILD}/FMIL/build
 	COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION>)
+
+add_test(
+	NAME Build_before_test
+	COMMAND "${CMAKE_COMMAND}" --build ${FMUCHK_BUILD} --config $<CONFIGURATION>)
+
+SET_TESTS_PROPERTIES ( 
+		Build_before_test PROPERTIES DEPENDS Test_FMIL)
+
 
 set(TEST_COMMAND_LINE_PARSING OFF)
 if(TEST_COMMAND_LINE_PARSING)
@@ -266,6 +270,10 @@ add_test(
 	NAME check_with_default_params 
 	COMMAND ${fmuCheck}  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs.fmu)
 
+set_tests_properties ( 
+		check_with_default_params 
+		PROPERTIES DEPENDS Build_before_test)
+
 foreach(fmu ${BAD_FMUS})
 	string(REPLACE "/" "_" testname "check_${fmu}")
 	string(REPLACE ":" "_" testname ${testname})
@@ -274,6 +282,9 @@ foreach(fmu ${BAD_FMUS})
 		WORKING_DIRECTORY ${TEST_OUT_DIR}
 		COMMAND ${fmuCheck} -t ${TEST_OUT_DIR} -l 6 -o ${testname}.csv -e ${testname}.log ${fmu} )
     set_tests_properties(${testname} PROPERTIES WILL_FAIL TRUE)
+	set_tests_properties ( 
+		${testname} 
+		PROPERTIES DEPENDS Build_before_test)
 endforeach(fmu)
 
 foreach(fmu ${ALL_TEST_FMUS})
@@ -283,4 +294,7 @@ foreach(fmu ${ALL_TEST_FMUS})
 		NAME ${testname}
 		WORKING_DIRECTORY ${TEST_OUT_DIR}
 		COMMAND ${fmuCheck} -t ${TEST_OUT_DIR} -l 6 -o ${testname}.csv -e ${testname}.log ${fmu} )
+	set_tests_properties ( 
+		${testname} 
+		PROPERTIES DEPENDS Build_before_test)
 endforeach(fmu)

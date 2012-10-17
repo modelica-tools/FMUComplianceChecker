@@ -1,6 +1,13 @@
 File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
 
+2012-10-22 Version 2.0a1
+- Added support for FMI 2.0beta4
+- Added logging of memory callbacks calls
+- The '-z <dir>' switch simplifies debugging for FMU developers
+- Fixed the bugs:
+  - empty and malfored XML filer could result in segmentation fault
+
 2012-08-22 Version 1.0.2
 - Fixed the bugs:
   - parsing of 'Model' element in XML

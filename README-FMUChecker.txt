@@ -6,8 +6,8 @@ Licence information is provided in: LICENCE-FMUChecker.txt
 Acknowledgements for used software: ACKNOWLEDGEMENTS-FMUChecker.txt
 
 The FMI Compliance Checker is intended for
-validation of FMU 1.0 (and later 2.0) compliance to the standard specification
-as published at <http://functional-mockup-interface.org>
+validation of FMU 1.0 and 2.0 compliance to the standard specification
+as published at <http://www.fmi-standard.org>
 
 The basic features include:
  - automatic unzipping into a temporary directory;
@@ -16,7 +16,7 @@ The basic features include:
 	- for correct order of elements and correct cardinality or relations;
 	- for correct cross-references;
 	- for semantic consistency;
- - validation of binary FMUs compiled for "standard32" platform for 
+ - validation of binary FMUs compiled for "standard32/default" platform for 
 	Windows (.dll), Linux (.so) and Mac OS (.dylib).
 	- loading of the binary module;
 	- checking whether all required functions are available
@@ -61,6 +61,9 @@ Options:
 
 -z <unzip-dir>   Do not create and remove temp directory but use the specified 
 				one for unpacking the FMU. The option takes precendence over -t.
+				This option is specifically intended for debugging. The unzipped
+				files are not deleted and DLL is not unloaded making it possible
+				for memory debugger to produce detailed repports.
 
 Command line examples:
 

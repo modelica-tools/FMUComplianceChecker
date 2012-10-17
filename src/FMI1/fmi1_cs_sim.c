@@ -54,8 +54,10 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 		hstep = (tend - tstart) / cdata->numSteps;
 	}
 
-	cdata->instanceName = "Test FMI 1.0 CS";
-	jmstatus = fmi1_import_instantiate_slave(fmu, cdata->instanceName, 0, mimeType, timeout, visible, interactive);
+	cdata->instanceNameToCompare = "Test FMI 1.0 CS";
+	cdata->instanceNameSavedPtr = 0;
+	jmstatus = fmi1_import_instantiate_slave(fmu, cdata->instanceNameToCompare, 0, mimeType, timeout, visible, interactive);
+	cdata->instanceNameSavedPtr = cdata->instanceNameToCompare;
 	if (jmstatus == jm_status_error) {
 		jm_log_fatal(cb, fmu_checker_module, "Could not instantiate the model");
 		return jm_status_error;

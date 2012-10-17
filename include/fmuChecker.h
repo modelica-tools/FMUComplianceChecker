@@ -75,7 +75,8 @@ typedef struct fmu_check_data_t {
 	const char* modelIdentifierCS;
 	const char* modelName;
 	const char*  GUID;
-	const char* instanceName;
+	const char* instanceNameSavedPtr;
+	const char* instanceNameToCompare;
 
 	/** Simulation stop time */
 	double stopTime;

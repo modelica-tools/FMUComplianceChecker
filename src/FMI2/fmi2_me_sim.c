@@ -73,9 +73,12 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 		}
 	}
 
-	cdata->instanceName = "Test FMI 2.0 ME";
+	cdata->instanceNameSavedPtr = 0;
+	cdata->instanceNameToCompare = "Test FMI 2.0 ME";
 
-	jmstatus = fmi2_import_instantiate_model(fmu, cdata->instanceName,0,0);
+	jmstatus = fmi2_import_instantiate_model(fmu, cdata->instanceNameToCompare,0,0);
+	cdata->instanceNameSavedPtr = cdata->instanceNameToCompare;
+
 	if (jmstatus == jm_status_error) {
 		jm_log_fatal(cb, fmu_checker_module, "Could not instantiate the model");
 		cb->free(states);
@@ -116,7 +119,10 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 
 		/* Get derivatives */
 		if( (n_states > 0) &&  !fmi2_status_ok_or_warning(fmistatus = fmi2_import_get_derivatives(fmu, states_der, n_states))) {
-			jm_log_fatal(cb, fmu_checker_module, "Could not retrieve time derivatives");
+			if(fmistatus != fmi2_status_discard)
+				jm_log_fatal(cb, fmu_checker_module, "Could not retrieve time derivatives");
+			else
+				jm_log_warning(cb, fmu_checker_module, "Could not retrieve time derivatives since FMU returned fmiDiscard");
 			break;
 		}
 
@@ -150,7 +156,10 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 
 		/* Set states */
 		if( (n_states > 0) && !fmi2_status_ok_or_warning(fmistatus = fmi2_import_set_continuous_states(fmu, states, n_states))) {
-			jm_log_fatal(cb, fmu_checker_module, "Could not set continuous states");
+			if(fmistatus != fmi2_status_discard)
+				jm_log_fatal(cb, fmu_checker_module, "Could not set continuous states");
+			else
+				jm_log_warning(cb, fmu_checker_module, "Could not set continuous states since FMU returned fmiDiscard");
 			break;
 		}
 		/* Step is completed */
@@ -163,7 +172,10 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 		if( (n_event_indicators > 0) && 
 			!fmi2_status_ok_or_warning(fmistatus = fmi2_import_get_event_indicators(fmu, event_indicators, n_event_indicators))
 			) {
-			jm_log_fatal(cb, fmu_checker_module, "Could not get event indicators");
+			if(fmistatus != fmi2_status_discard)
+				jm_log_fatal(cb, fmu_checker_module, "Could not get event indicators");
+			else
+				jm_log_warning(cb, fmu_checker_module, "Could not get event indicators since FMU returned fmiDiscard");
 			break;
 		}
 
@@ -221,7 +233,10 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 		}
 	} /* while */
 
-	if(!fmi2_status_ok_or_warning(fmistatus)) {
+	if(fmistatus == fmi2_status_discard) {
+		jm_log_warning(cb, fmu_checker_module, "Simulation loop terminated at time %g since FMU returned fmiDiscard. Running with shorter time step may help.", tcur);
+	}
+	else if(!fmi2_status_ok_or_warning(fmistatus)) {
 		jm_log_fatal(cb, fmu_checker_module, "Simulation loop terminated at time %g since FMU returned status: %s", tcur, fmi2_status_to_string(fmistatus));
 		jmstatus = jm_status_error;
 	}
@@ -229,11 +244,13 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 		jm_log_info(cb, fmu_checker_module, "Simulation finished successfully at time %g", tcur);
 	}
 
-	if(  (fmistatus = fmi2_import_terminate(fmu)) != fmi2_status_ok) {
-		 jm_log_error(cb, fmu_checker_module, "fmiTerminate returned status: %s", fmi2_status_to_string(fmistatus));
-	}
+	if(fmistatus != fmi2_status_fatal) {
+		if(  (fmistatus = fmi2_import_terminate(fmu)) != fmi2_status_ok) {
+			 jm_log_error(cb, fmu_checker_module, "fmiTerminate returned status: %s", fmi2_status_to_string(fmistatus));
+		}
 	
-	fmi2_import_free_model_instance(fmu);
+		fmi2_import_free_model_instance(fmu);
+	}
 
 	cb->free(states);
 	cb->free(states_der);
