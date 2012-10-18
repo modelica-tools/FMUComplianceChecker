@@ -17,7 +17,6 @@ Release notes for FMI Compliance Checker (FMUChecker) application.
 - Fixed the bugs:
   - empty and malfored XML files could result in segmentation fault;
   - instance name pointer can be legally used in fmiInitialize
-  - fmiDiscard status should not always be treated as fatal error.
 
 2012-08-22 Version 1.0.2
 - Fixed the bugs:
