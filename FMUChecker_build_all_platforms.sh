@@ -26,10 +26,10 @@ REMOTESRCDIR=/home/iakov/FMUCheckerBuild
 REMOTEBUILDDIR=/tmp/FMUCheckerBuild
 
 # Almost no error checking in the script. So, please, read the output!
-FMIL_REPO="https://svn.jmodelica.org/FMILibrary/trunk"
-FMUCHK_REPO="https://svn.modelon.se/P533-FMIComplianceChecker/trunk"
+FMIL_REPO="https://svn.jmodelica.org/FMILibrary/branches/2.0.x"
+FMUCHK_REPO="https://svn.modelon.se/P533-FMIComplianceChecker/tags/2.0a1"
 # the build dir will be removed with rm -rf if RMBUILDDIR="YES"
-RMBUILDDIR="NO"
+RMBUILDDIR="YES"
 ##########################################################################################
 # NO MORE SETTINGS - RUNNING
 ################################################################################################
