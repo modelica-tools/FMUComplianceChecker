@@ -1,12 +1,23 @@
 File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
 
-2012-10-22 Version 2.0a1
-- Added support for FMI 2.0beta4
+2012-10-18 Version 2.0a1
+- Added support for FMI 2.0beta4 with the following modifications:
+  - Modified and corrected standard header files as proposed in
+  tickets #86, #87, #88 and #108 at https://trac.fmi-standard.org/
+  Header files are distributed with the FMU checker.
+  - Removed fmiGetPartialDerivatives interface function as decided 
+  during the FMI meeting Sep 07, 2012
+  Note that FMU Checker 2.0a1 supports both FMI 1.0 and 2.0 beta 4 
+  specifications and contains a number of bug fixes as compared to the 1.0.2
+  release. The ‘alpha’ status concerns FMI 2.0 support due to limited testing
+  and beta status of the specification.
 - Added logging of memory callbacks calls
 - The '-z <dir>' switch simplifies debugging for FMU developers
 - Fixed the bugs:
-  - empty and malfored XML filer could result in segmentation fault
+  - empty and malfored XML files could result in segmentation fault;
+  - instance name pointer can be legally used in fmiInitialize
+  - fmiDiscard status should not always be treated as fatal error.
 
 2012-08-22 Version 1.0.2
 - Fixed the bugs:

@@ -63,7 +63,7 @@ Options:
 				one for unpacking the FMU. The option takes precendence over -t.
 				This option is specifically intended for debugging. The unzipped
 				files are not deleted and DLL is not unloaded making it possible
-				for memory debugger to produce detailed repports.
+				for memory debugger such as valgrind to produce detailed reports.
 
 Command line examples:
 
