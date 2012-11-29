@@ -373,7 +373,7 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 				if(t) et = fmi2_import_get_type_as_enum(t);
 
 				fmistatus = fmi2_import_get_integer(fmu,&vr, 1, &val);
-				if(et) itname = fmi2_import_get_enum_type_item_name(et, val);
+				if(et) itname = fmi2_import_get_enum_type_value_name(et, val);
 				if(!itname) {
 					jm_log_error(cb, fmu_checker_module, "Could not get item name for enum variable %s", fmi2_import_get_variable_name(v));
 				}
