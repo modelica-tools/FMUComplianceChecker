@@ -25,6 +25,7 @@ set(FMUCHK_FMIL_HOME_DIR "${no_fmil}" CACHE PATH "Path to the directory with FMI
 set(FMUCHK_FMI_STANDARD_HEADERS  "" CACHE PATH "Path to the FMI standard headers directory. Leave empty to use the headers from FMIL." )
 option(FMUCHK_ENABLE_LOG_LEVEL_DEBUG "Enable log level 'debug'. If the option is of then the debug level is not compiled in." OFF)
 set(FMUCHK_TEST_FMUS_DIR ${FMUCHK_HOME}/TestFMUs CACHE PATH "Directory with FMUs to be used in tests (checker will run for each FMU).")
+set(FMUCHK_FMI_PUBLIC "NO" CACHE PATH "Svn check-out from svn.fmi-standar.org/branches/public with test fmus (checker will run cross-check).")
 if(MSVC)
 	option (FMUCHK_BUILD_WITH_STATIC_RTLIB "Use static run-time libraries (/MT or /MTd linker flags)" ON)
 endif()
@@ -182,6 +183,11 @@ set_target_properties(
 
 add_dependencies(fmilib fmil)
 
+# Detect the version
+include(${FMUCHK_HOME}/GetVersion.cmake)
+getVersionSVN("${FMUCHK_HOME}" FMUCHK_VERSION)
+file(WRITE ${CMAKE_BINARY_DIR}/VERSION-FMUChecker.txt "${FMUCHK_VERSION}")
+
 # Now create the checker executable
 set(SOURCE 
 	${FMUCHK_HOME}/src/Common/fmuChecker.c
@@ -298,3 +304,89 @@ foreach(fmu ${ALL_TEST_FMUS})
 		${testname} 
 		PROPERTIES DEPENDS Build_before_test)
 endforeach(fmu)
+#message(STATUS "FMUCHK_FMI_PUBLIC = ${FMUCHK_FMI_PUBLIC}")
+#get_property(fmuCheckLocation TARGET ${fmuCheck} PROPERTY LOCATION)
+if(FMUCHK_FMI_PUBLIC)
+    file(TO_CMAKE_PATH ${FMUCHK_FMI_PUBLIC} FMUCHK_FMI_PUBLIC_NORMALIZED)
+    file(GLOB CROSS_CHECK_FMU_DIRS "${FMUCHK_FMI_PUBLIC_NORMALIZED}/Test_FMUs/*/*/*/*/${FMUCHK_FMI_PLATFORM}/*/" )
+#    message(STATUS "CROSS_CHECK_FMU_DIRS = ${CROSS_CHECK_FMU_DIRS}")
+    foreach(fmudirloop ${CROSS_CHECK_FMU_DIRS})
+        file(TO_CMAKE_PATH ${fmudirloop} fmudir)
+        
+        file(GLOB FMUFULLPATH "${fmudir}/*.fmu" )
+        file(RELATIVE_PATH FMU "${fmudir}" "${FMUFULLPATH}")
+        string(REPLACE ".fmu" "" FMUBASENAME ${FMU})
+        string(REPLACE "Test_FMUs" "CrossCheck_Results" CCRDIR "${fmudir}")
+        string(REPLACE "${FMUCHK_FMI_PLATFORM}/" "" CCRDIR ${CCRDIR})
+        string(REPLACE "ModelExchange" "ModelExchange/${FMUCHK_FMI_PLATFORM}/FMIL/${FMUCHK_VERSION}" CCRDIR ${CCRDIR})
+        string(REPLACE "CoSimulation" "CoSimulation/${FMUCHK_FMI_PLATFORM}/FMIL/${FMUCHK_VERSION}" CCRDIR ${CCRDIR})
+        file(RELATIVE_PATH FMURELPATH "${FMUCHK_FMI_PUBLIC_NORMALIZED}/Test_FMUs" "${FMUFULLPATH}")
+ #       message(STATUS "fmudir: ${fmudir} 
+ #       FMU path: ${FMUFULLPATH}
+ #       FMUBASENAME: ${FMUBASENAME}
+ #       CCRDIR: ${CCRDIR}")
+        
+        file(GLOB BATFILENAME  "${fmudir}/Test*.bat")
+        if(NOT BATFILENAME)
+            file(GLOB BATFILENAME "${fmudir}/check*.bat")
+        endif()
+        if(NOT BATFILENAME)
+            file(GLOB BATFILENAME "${fmudir}/test*.bat")
+        endif()
+        if(NOT BATFILENAME)
+            message(STATUS "trying ${fmudir}/test*.sh")
+            file(GLOB BATFILENAME "${fmudir}/test*.sh")
+        endif()
+
+  #      message(STATUS "Found BATFILENAME=<${BATFILENAME}>")
+        
+        if(BATFILENAME AND (EXISTS "${BATFILENAME}"))
+            file(READ "${BATFILENAME}" BATFILE)
+        else()
+            message(WARNING "Could not find a batch file in FMU dir ${fmudir}")
+            set(BATFILE "")
+        endif()
+   #     message(STATUS "BATFILE=${BATFILE}")
+        string(REGEX MATCH "-h\ [0-9.+eE-]*" STEPFLAG "${BATFILE}")
+        string(REGEX MATCH "-s\ [0-9.+eE-]*" STOPTIMEFLAG "${BATFILE}")
+
+        message(STATUS 
+        "FMUdir: ${fmudir} 
+        FMU: ${FMU}
+        flags: ${STEPFLAG} ${STOPTIMEFLAG}
+        Results will be put into ${CCRDIR}")
+        
+        if(FMU)
+            file(MAKE_DIRECTORY ${CCRDIR})
+            string(REPLACE "${FMUCHK_FMI_PUBLIC_NORMALIZED}/Test_FMUs/" "" testname "${FMUFULLPATH}")
+            string(REPLACE "/" "_" testname "check_${testname}")
+            string(REPLACE ":" "_" testname ${testname})
+            message(STATUS "Adding test named ${testname}")
+#           message(STATUS "Command: ${fmuCheck} -t ${TMPDIR} -o result.csv -e log.txt ${STEPFLAG} ${STOPTIMEFLAG} ${FMUFULLPATH}")
+            file(WRITE ${CCRDIR}/run_test.cmake
+"#   File: run_test.cmake
+#   A cmake script for testing FMU within CTest suit.
+#   To run use:
+#     cmake -DTESTFMUSDIR=<path to Test_FMUs dir> -DTMPDIR=<temp dir> -DCHECKER=<checker application> -P run_test.cmake
+file(REMOVE passed failed)
+Execute_process(
+    COMMAND \${CHECKER} -t \${TMPDIR} -o result.csv -e log.txt ${STEPFLAG} ${STOPTIMEFLAG} \${TESTFMUSDIR}/${FMURELPATH}
+    RESULT_VARIABLE passed)
+if(passed EQUAL 0)
+    file(WRITE passed \"\")
+else()
+    file(WRITE failed \"\")
+    message(FATAL_ERROR \"test ${testname} failed\")
+endif()")
+                
+            add_test(
+                NAME ${testname}
+                WORKING_DIRECTORY ${CCRDIR}
+                COMMAND ${CMAKE_COMMAND} -DTESTFMUSDIR=${FMUCHK_FMI_PUBLIC_NORMALIZED}/Test_FMUs -DTMPDIR=${FMUCHK_BUILD} -DCHECKER=$<TARGET_FILE:${fmuCheck}> -P run_test.cmake
+            )
+            set_tests_properties ( 
+                ${testname} 
+                PROPERTIES DEPENDS Build_before_test)
+        endif()
+    endforeach()
+endif()
