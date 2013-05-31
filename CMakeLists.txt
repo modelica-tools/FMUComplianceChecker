@@ -20,8 +20,7 @@ set(FMUCHK_BUILD ${FMIComplianceChecker_BINARY_DIR})
 
 # User configuration options and parameters
 set(FMUCHK_INSTALL_PREFIX ${FMUCHK_BUILD}/../install CACHE PATH "Prefix prepended to install directories.")
-set(no_fmil "No FMIL specified")
-set(FMUCHK_FMIL_HOME_DIR "${no_fmil}" CACHE PATH "Path to the directory with FMIL sources (directory with CMakeLists.txt)." )
+set(FMUCHK_FMIL_HOME_DIR "${FMUCHK_HOME}/FMIL")
 set(FMUCHK_FMI_STANDARD_HEADERS  "" CACHE PATH "Path to the FMI standard headers directory. Leave empty to use the headers from FMIL." )
 option(FMUCHK_ENABLE_LOG_LEVEL_DEBUG "Enable log level 'debug'. If the option is of then the debug level is not compiled in." OFF)
 set(FMUCHK_TEST_FMUS_DIR ${FMUCHK_HOME}/TestFMUs CACHE PATH "Directory with FMUs to be used in tests (checker will run for each FMU).")
@@ -87,21 +86,6 @@ if(MSVC)
 			set(${flag_var} ${tmp} CACHE STRING "compiler flags" FORCE)
 		endif()
 	endforeach(flag_var)	
-endif()
-
-if("${FMUCHK_FMIL_HOME_DIR}" STREQUAL "${no_fmil}")
-set(download_fmil_message
-"\nYou are using the default settings for FMUCHK_FMIL_HOME_DIR.
-Please, download FMI Library sources from <http://www.fmi-library.org>.
-Then set the FMUCHK_FMIL_HOME_DIR to point to the download location and reconfigure.
-If using command line run:
-	cmake -DFMUCHK_FMIL_HOME_DIR=<FMIL sources> <FMUChecker source dir>
-<FMIL sources> should point to the directory with FMILs CMakeLists.txt.
-Alternatively, use cmake-gui or ccmake to set the path.
-For the list of configuration options see:
-${FMUCHK_HOME}/BUILD-FMUChecker.txt")
-
-message(FATAL_ERROR "${download_fmil_message}")
 endif()
 
 set(FMI_STANDARD_HEADERS_DIR ${FMUCHK_FMI_STANDARD_HEADERS})
@@ -186,7 +170,11 @@ add_dependencies(fmilib fmil)
 # Detect the version
 include(${FMUCHK_HOME}/GetVersion.cmake)
 getVersionSVN("${FMUCHK_HOME}" FMUCHK_VERSION)
-file(WRITE ${CMAKE_BINARY_DIR}/VERSION-FMUChecker.txt "${FMUCHK_VERSION}")
+getVersionSVN("${FMUCHK_HOME}/FMIL" FMIL_VERSION)
+file(WRITE ${CMAKE_BINARY_DIR}/VERSION-FMUChecker.txt 
+"FMI checker version:${FMUCHK_VERSION}
+FMI library version:${FMIL_VERSION}
+")
 
 # Now create the checker executable
 set(SOURCE 
@@ -318,8 +306,8 @@ if(FMUCHK_FMI_PUBLIC)
         string(REPLACE ".fmu" "" FMUBASENAME ${FMU})
         string(REPLACE "Test_FMUs" "CrossCheck_Results" CCRDIR "${fmudir}")
         string(REPLACE "${FMUCHK_FMI_PLATFORM}/" "" CCRDIR ${CCRDIR})
-        string(REPLACE "ModelExchange" "ModelExchange/${FMUCHK_FMI_PLATFORM}/FMIL/${FMUCHK_VERSION}" CCRDIR ${CCRDIR})
-        string(REPLACE "CoSimulation" "CoSimulation/${FMUCHK_FMI_PLATFORM}/FMIL/${FMUCHK_VERSION}" CCRDIR ${CCRDIR})
+        string(REPLACE "ModelExchange" "ModelExchange/${FMUCHK_FMI_PLATFORM}/FMILibrary/${FMIL_VERSION}" CCRDIR ${CCRDIR})
+        string(REPLACE "CoSimulation" "CoSimulation/${FMUCHK_FMI_PLATFORM}/FMILibrary/${FMIL_VERSION}" CCRDIR ${CCRDIR})
         file(RELATIVE_PATH FMURELPATH "${FMUCHK_FMI_PUBLIC_NORMALIZED}/Test_FMUs" "${FMUFULLPATH}")
  #       message(STATUS "fmudir: ${fmudir} 
  #       FMU path: ${FMUFULLPATH}
@@ -363,6 +351,15 @@ if(FMUCHK_FMI_PUBLIC)
             string(REPLACE ":" "_" testname ${testname})
             message(STATUS "Adding test named ${testname}")
 #           message(STATUS "Command: ${fmuCheck} -t ${TMPDIR} -o result.csv -e log.txt ${STEPFLAG} ${STOPTIMEFLAG} ${FMUFULLPATH}")
+            file(WRITE ${CCRDIR}/README.txt
+"Tested using: FMI Library version ${FMIL_VERSION}
+Test driver: FMI Compliance checker version: ${FMUCHK_VERSION}
+
+Tested FMU: ${FMU}
+
+Log output can be found in 'log.txt' 
+Simulation results: 'result.csv'"
+)
             file(WRITE ${CCRDIR}/run_test.cmake
 "#   File: run_test.cmake
 #   A cmake script for testing FMU within CTest suit.
