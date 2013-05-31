@@ -21,7 +21,7 @@ void  fmi1_checker_logger(fmi1_component_t c, fmi1_string_t instanceName, fmi1_s
 	fmi1_import_t* fmu = cdata->fmu1;
 	jm_callbacks* cb = &cdata->callbacks;
 	jm_log_level_enu_t logLevel;
-	char buf[10000], *curp = buf;
+	char buf[100000], *curp = buf;
 	const char* statusStr;
     va_list args;
 
@@ -266,6 +266,18 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 	char fmt_i[20];
 	char fmt_true[20];
 	char fmt_false[20];
+
+    if(time < cdata->nextOutputTime) {
+        return jm_status_success;
+    }
+    else {
+        cdata->nextOutputStep++;
+        cdata->nextOutputTime = cdata->stopTime*cdata->nextOutputStep/cdata->numSteps;
+        if(cdata->nextOutputTime > cdata->stopTime) {
+            cdata->nextOutputTime = cdata->stopTime;
+        }
+    }
+
 	fmt_sep[0] = cdata->CSV_separator; fmt_sep[1] = 0;
 	sprintf(fmt_r, "%c%s", cdata->CSV_separator, "%g");
 	sprintf(fmt_i, "%c%s", cdata->CSV_separator, "%d");

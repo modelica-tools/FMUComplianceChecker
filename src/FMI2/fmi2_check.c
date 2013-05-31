@@ -309,6 +309,18 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 	char fmt_i[20];
 	char fmt_true[20];
 	char fmt_false[20];
+
+    if(time < cdata->nextOutputTime) {
+        return jm_status_success;
+    }
+    else {
+        cdata->nextOutputStep++;
+        cdata->nextOutputTime = cdata->stopTime*cdata->nextOutputStep/cdata->numSteps;
+        if(cdata->nextOutputTime > cdata->stopTime) {
+            cdata->nextOutputTime = cdata->stopTime;
+        }
+    }
+
 	fmt_sep[0] = cdata->CSV_separator; fmt_sep[1] = 0;
 	sprintf(fmt_r, "%c%s", cdata->CSV_separator, "%g");
 	sprintf(fmt_i, "%c%s", cdata->CSV_separator, "%d");

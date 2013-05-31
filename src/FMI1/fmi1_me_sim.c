@@ -35,18 +35,9 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 	fmi1_event_info_t eventInfo;
 	fmi1_boolean_t intermediateResults = fmi1_false;
 
-	if(cdata->stopTime > 0) {
-		tend = cdata->stopTime;
-	}
+	prepare_time_step_info(cdata, &tend, &hdef);
 
-	if(cdata->stepSize > 0) {
-		hdef = cdata->stepSize;
-	}
-	else {
-		hdef = (tend - tstart) / cdata->numSteps;
-	}
-
-	n_states = fmi1_import_get_number_of_continuous_states(fmu);	
+    n_states = fmi1_import_get_number_of_continuous_states(fmu);	
 	n_event_indicators = fmi1_import_get_number_of_event_indicators(fmu);
 
 	if(n_states) {

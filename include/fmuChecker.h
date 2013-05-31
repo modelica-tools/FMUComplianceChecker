@@ -44,6 +44,7 @@ typedef struct fmu_check_data_t {
 	char* tmpPath;
     
     /** Same as tmpPath unless specified by an option */
+    char unzipPathBuf[10000];
     char* unzipPath;
 
 	/** Directory to be used for temporary files. Either user specified or system-wide*/
@@ -82,8 +83,17 @@ typedef struct fmu_check_data_t {
 	double stopTime;
 	/** Step size for the simulation*/
 	double stepSize;
+    /** Flag indicating if step size is user defined in command line */
+    int stepSizeSetByUser;
 	/** Number of steps to take */
+#define DEFAULT_NUM_STEPS 500
 	size_t numSteps;
+    /** Flag indicating if number of steps is user defined in command line */
+    int numStepsSetByUser;
+    /** Next output time */
+    double nextOutputTime;
+    /** Next output step number*/
+    double nextOutputStep;
 	/** separator character to use */
 	char CSV_separator;
 	/** print enums and bools as integers */
@@ -175,5 +185,11 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time);
 static int fmi2_status_ok_or_warning(fmi2_status_t fmistatus) {
 	return (fmistatus == fmi2_status_ok) || (fmistatus == fmi2_status_warning);
 }
+
+/* Prepare the time step, time end and number of steps info
+    for the simulation.
+    Input/output: information from default experiment
+*/
+void prepare_time_step_info(fmu_check_data_t* cdata, double* timeEnd, double* timeStep);
 
 #endif

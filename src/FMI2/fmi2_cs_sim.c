@@ -27,16 +27,7 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 	fmi2_real_t tend = fmi2_import_get_default_experiment_stop(fmu);
 	fmi2_boolean_t StopTimeDefined = fmi2_true;
 
-	if(cdata->stopTime > 0) {
-		tend = cdata->stopTime;
-	}
-	if(cdata->stepSize > 0) {
-		hstep = cdata->stepSize;
-	}
-	else {
-		hstep = (tend - tstart) / cdata->numSteps;
-	}
-
+    prepare_time_step_info(cdata, &tend, &hstep);
 
 	cdata->instanceNameToCompare = "Test FMI 2.0 CS";
 	cdata->instanceNameSavedPtr = 0;

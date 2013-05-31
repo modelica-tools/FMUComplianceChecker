@@ -101,10 +101,10 @@ void print_usage( ) {
 		"Command line examples:\n\n"
 		"fmuCheck." FMI_PLATFORM " model.fmu \n"
 		"\tThe checker will process 'model.fmu'  with default options.\n\n"
-		"fmuCheck." FMI_PLATFORM " -e log.txt -o result.csv -c , -s 2 -h 1e-3 -l 5 -t . model.fmu \n"
+		"fmuCheck." FMI_PLATFORM " -e log.txt -o result.csv -c ; -s 2 -h 1e-3 -l 5 -t . model.fmu \n"
         "\tThe checker will process 'model.fmu'.\n"
         "\tLog messages will be saved in log.txt, simulation output in \n"
-        "\tresult.csv and comma will be used for field separation in the CSV\n"
+        "\tresult.csv and semicolon will be used for field separation in the CSV\n"
         "\tfile. The checker will simulate the FMU until 2 seconds with \n"
         "\ttime step 1e-3 seconds. Verbose messages will be generated.\n"
         "\tTemporary files will be created in the current directory.\n"
@@ -113,7 +113,7 @@ void print_usage( ) {
 
 void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 	size_t i;
-	if(argc < 2) {
+ 	if(argc < 2) {
 		print_usage();
 		do_exit(0);
 	}
@@ -143,7 +143,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			cdata->stopTime = endTime;
 			break;
 		}
-		case 'h':  { /*stepSize>\t Step size to use in forward Euler. If provided takes preference over '-n' below.\n" */
+		case 'h':  { /*<stepSize>\t Step size to use in forward Euler. Default is to used step size based on the number of output points.\n" */
 			double h;
 			i++;
 			option = argv[i];
@@ -152,9 +152,10 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 				do_exit(1);
 			}
 			cdata->stepSize = h;
+            cdata->stepSizeSetByUser = 1;
 			break;
 				   }
-		case 'n': {/*num_steps>\t Number of steps in forward Euler until time end.\n\t Default is 100 steps simulation between time start and time end.\n"*/
+		case 'n': {/*<num_steps>\t Maximum number of output points. Zero means output in every step. Default is " #DEFAULT_NUM_STEPS ".\n"*/
 			int n;
 			i++;
 			option = argv[i];
@@ -162,7 +163,8 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 				jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Error parsing command line. Expected number of steps after '-n'.\nRun without arguments to see help.");
 				do_exit(1);
 			}
-			cdata->numSteps = (size_t)n;			
+			cdata->numSteps = (size_t)n;
+            cdata->numStepsSetByUser = 1;
 			break;
 				  }
 		case 'l': { /*log level>\t Log level: 0 - no logging, 1 - fatal errors only,\n\t 2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug\n"*/
@@ -176,7 +178,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			cdata->callbacks.log_level = (jm_log_level_enu_t)log_level;
 			break;
 		}
-		case 'c': {/*csvSeparator>\t Separator character to be used. Default is ';'.\n"*/
+		case 'c': {/*csvSeparator>\t Separator character to be used. Default is ','.\n"*/
 			i++;
 			option = argv[i];
 			if(option[1] != 0) {
@@ -207,11 +209,20 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
         }            
 				  }
         case 'z': { /* "-z <unzip-dir>\t Do not create temp directory but use the specified one\n\t\t for unpacking the FMU The option takes precendence over -t." */
+			char cwd[10000];
             i++;
-            cdata->unzipPath = argv[i];
+			if( jm_portability_get_current_working_directory(cwd, 9999) ||
+                jm_portability_set_current_working_directory(argv[i]) ||
+			    jm_portability_get_current_working_directory(cdata->unzipPathBuf, 9999) ||
+			    jm_portability_set_current_working_directory(cwd) 
+				) {
+				clear_fmu_check_data(cdata, 1);
+				do_exit(1);
+			}
+            cdata->unzipPath = cdata->unzipPathBuf;
             break;
-        }            
-		default:
+        }   
+        default:
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Unsupported command line option %s.\nRun without arguments to see help.", option);
 			do_exit(1);
 		}
@@ -347,8 +358,12 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 
 	cdata->stopTime = 0.0;
 	cdata->stepSize = 0.0;
-	cdata->numSteps = 100;
-	cdata->CSV_separator = ';';
+    cdata->stepSizeSetByUser = 0;
+	cdata->numSteps = DEFAULT_NUM_STEPS;
+    cdata->numStepsSetByUser = 0;
+    cdata->nextOutputTime = 0.0;
+    cdata->nextOutputStep = 0;
+	cdata->CSV_separator = ',';
 	cdata->out_enum_as_int_flag = 0;
 	cdata->output_file_name = 0;
 	cdata->out_file = stdout;
@@ -405,6 +420,46 @@ void clear_fmu_check_data(fmu_check_data_t* cdata, int close_log) {
 	cdata_global_ptr = 0;
 }
 
+/* Prepare the time step, time end and number of steps info
+    for the simulation.
+    Input/output: information from default experiment
+*/
+void prepare_time_step_info(fmu_check_data_t* cdata, double* timeEnd, double* timeStep) {
+    if(cdata->stopTime > 0) {
+        *timeEnd = cdata->stopTime;
+    }
+    else {
+        cdata->stopTime = *timeEnd;
+    }
+
+    if(cdata->stepSizeSetByUser && cdata->numStepsSetByUser) {
+        *timeStep = cdata->stepSize;
+    }
+    else if(cdata->stepSizeSetByUser) {
+        double nSteps;
+        *timeStep = cdata->stepSize;
+        nSteps = ((*timeEnd)/(*timeStep));        
+        
+        if(nSteps > DEFAULT_NUM_STEPS) {
+           cdata->numSteps = DEFAULT_NUM_STEPS;
+        }
+        else {
+           cdata->numSteps = (size_t)nSteps;
+        }
+    }
+    else if(cdata->numStepsSetByUser) {
+        if(cdata->numSteps) {
+            *timeStep = cdata->stopTime / cdata->numSteps;
+        }
+        else {
+            *timeStep = cdata->stopTime / DEFAULT_NUM_STEPS;
+        }
+    }
+    else {
+        *timeStep = cdata->stopTime / cdata->numSteps;
+    }
+}
+
 fmu_check_data_t* cdata_global_ptr = 0;
 
 int main(int argc, char *argv[])
@@ -441,7 +496,7 @@ int main(int argc, char *argv[])
 		break;
 	default:
 		clear_fmu_check_data(&cdata, 1);
-		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 is supported so far");
+		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 and 2.0beta are supported so far");
 		do_exit(1);
 	}
 

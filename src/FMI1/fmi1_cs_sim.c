@@ -44,15 +44,8 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 			getchar();
 		}
 	}
-	if(cdata->stopTime > 0) {
-		tend = cdata->stopTime;
-	}
-	if(cdata->stepSize > 0) {
-		hstep = cdata->stepSize;
-	}
-	else {
-		hstep = (tend - tstart) / cdata->numSteps;
-	}
+
+    prepare_time_step_info(cdata, &tend, &hstep);
 
 	cdata->instanceNameToCompare = "Test FMI 1.0 CS";
 	cdata->instanceNameSavedPtr = 0;
