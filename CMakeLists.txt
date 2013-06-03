@@ -170,7 +170,9 @@ add_dependencies(fmilib fmil)
 # Detect the version
 include(${FMUCHK_HOME}/GetVersion.cmake)
 getVersionSVN("${FMUCHK_HOME}" FMUCHK_VERSION)
+message(STATUS "Checker version: ${FMUCHK_VERSION}")
 getVersionSVN("${FMUCHK_HOME}/FMIL" FMIL_VERSION)
+message(STATUS "FMIL version: ${FMIL_VERSION}")
 file(WRITE ${CMAKE_BINARY_DIR}/VERSION-FMUChecker.txt 
 "FMI checker version:${FMUCHK_VERSION}
 FMI library version:${FMIL_VERSION}
