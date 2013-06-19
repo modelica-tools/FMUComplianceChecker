@@ -324,14 +324,16 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 	fmt_sep[0] = cdata->CSV_separator; fmt_sep[1] = 0;
 	sprintf(fmt_r, "%c%s", cdata->CSV_separator, "%g");
 	sprintf(fmt_i, "%c%s", cdata->CSV_separator, "%d");
-	if(cdata->out_enum_as_int_flag) {
-		sprintf(fmt_true, "%c1", cdata->CSV_separator);
-		sprintf(fmt_false, "%c0", cdata->CSV_separator);
-	}
-	else
-	{
+#ifdef SUPPORT_out_enum_as_int_flag
+	if(!cdata->out_enum_as_int_flag) {
 		sprintf(fmt_true, "%ctrue", cdata->CSV_separator);
 		sprintf(fmt_false, "%cfalse", cdata->CSV_separator);
+	}
+	else
+#endif
+	{
+		sprintf(fmt_true, "%c1", cdata->CSV_separator);
+		sprintf(fmt_false, "%c0", cdata->CSV_separator);
 	}
 
 	if(checked_fprintf(cdata, "%g", time) != jm_status_success) {
@@ -389,12 +391,15 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 				if(!itname) {
 					jm_log_error(cb, fmu_checker_module, "Could not get item name for enum variable %s", fmi2_import_get_variable_name(v));
 				}
-				if(cdata->out_enum_as_int_flag || !itname) {
-					outstatus = checked_fprintf(cdata, fmt_i, val);
-				}
-				else {
+#ifdef SUPPORT_out_enum_as_int_flag
+                if(!cdata->out_enum_as_int_flag && itname) {
 					checked_fprintf(cdata, fmt_sep);
 					outstatus = checked_print_quoted_str(cdata, itname);
+				}
+				else 
+#endif
+                {
+					outstatus = checked_fprintf(cdata, fmt_i, val);
 				}
 				break;
 			}

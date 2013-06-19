@@ -86,11 +86,12 @@ void print_usage( ) {
 	printf("FMI compliance checker.\n"
 		"Usage: fmuCheck." FMI_PLATFORM " [options] <model.fmu>\n\n"
 		"Options:\n\n"
-		"-c <separator>\t Separator character to be used in CSV output. Default is ';'.\n\n"
+		"-c <separator>\t Separator character to be used in CSV output. Default is ','.\n\n"
 		"-e <filename>\t Error log file name. Default is to use standard error.\n\n"
 		"-h <stepSize>\t Step size to use in forward Euler. Takes preference over '-n'.\n\n"
-		"-i\t\t Print enums and booleans as integers (default is to print item names, true and false).\n\n" 
+        "-i <infile>\t Name of the CSV file name with input data.\n\n"
 		"-l <log level>\t Log level: 0 - no logging, 1 - fatal errors only,\n\t\t 2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.\n\n"
+        "-m\t\t Mangle variable names to avoid quoting (needed for some CSV\n\t\t importing applications).\n\n"
 		"-n <num_steps>\t Number of steps in forward Euler until time end.\n\t\t Default is 100 steps simulation between start and stop time.\n\n"
 		"-o <filename>\t Simulation result output file name. Default is to use standard output.\n\n"
 		"-s <stopTime>\t Simulation stop time, default is to use information from\n\t\t'DefaultExperiment' as specified in the model description XML.\n\n"
@@ -203,8 +204,13 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			cdata->temp_dir = argv[i];
 			break;
 
-		case 'i': { /* "Print enums and booleans as integers (default is to print item names, true and false)." */            
-            cdata->out_enum_as_int_flag = 1;
+		case 'i': {   /*     "-i <infile>\t Name of the CSV file name with input data.\n\n" */
+            i++;
+            cdata->inputFileName = argv[i];
+            break;
+         }
+        case 'm':{ /* "Print enums and booleans as integers (default is to print item names, true and false)." */            
+            cdata->do_mangle_var_names = 1;
             break;
         }            
 				  }
@@ -264,6 +270,20 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		}
 		fclose(tryFMU);
 	}
+    { 
+        
+        if(cdata->inputFileName) {
+            FILE* infile = fopen(cdata->inputFileName, "rb");
+            if(infile) {
+                fclose(infile);
+            }
+            else {
+    			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Cannot open input data file (%s)", strerror(errno));
+	    		clear_fmu_check_data(cdata, 1);
+		    	do_exit(1);
+            }
+        }
+    }
 
 	if(!cdata->temp_dir) {
 		cdata->temp_dir = jm_get_system_temp_dir();
@@ -364,12 +384,16 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
     cdata->nextOutputTime = 0.0;
     cdata->nextOutputStep = 0;
 	cdata->CSV_separator = ',';
+#ifdef SUPPORT_out_enum_as_int_flag
 	cdata->out_enum_as_int_flag = 0;
+#endif
 	cdata->output_file_name = 0;
 	cdata->out_file = stdout;
 	cdata->log_file_name = 0;
 	cdata->log_file = stderr;
+    cdata->inputFileName = 0;
 	cdata->do_simulate_flg = 1;
+    cdata->do_mangle_var_names = 0;
 
 	cdata->version = fmi_version_unknown_enu;
 
@@ -386,8 +410,9 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 
 void clear_fmu_check_data(fmu_check_data_t* cdata, int close_log) {
 	if(cdata->fmu1) {
+        fmi1_free_input_data(&cdata->fmu1_inputData);
 		fmi1_import_free(cdata->fmu1);
-		cdata->fmu1 = 0;
+		cdata->fmu1 = 0;        
 	}
 	if(cdata->fmu2) {
 		fmi2_import_free(cdata->fmu2);

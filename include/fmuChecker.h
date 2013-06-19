@@ -16,6 +16,8 @@
 #include <JM/jm_portability.h>
 #include <fmilib.h>
 
+#include "fmi1_input_reader.h"
+
 /** string constant used for logging. */
 extern const char* fmu_checker_module;
 
@@ -37,7 +39,7 @@ void print_usage() ;
 #define MAX_URL_LENGTH 10000
 
 /**  Checker data structure is used to pass information between different routines */
-typedef struct fmu_check_data_t {
+struct fmu_check_data_t {
 	/** FMU file */
 	const char* FMUPath;	
 	/** Temporary directory with unique name where FMU is unpacked */
@@ -96,8 +98,14 @@ typedef struct fmu_check_data_t {
     double nextOutputStep;
 	/** separator character to use */
 	char CSV_separator;
+
+/** this feature is currently off */
+#undef SUPPORT_out_enum_as_int_flag
+#ifdef SUPPORT_out_enum_as_int_flag
 	/** print enums and bools as integers */
 	char out_enum_as_int_flag;
+#endif
+
 	/** Name of the output file (NULL is stdout)*/
 	char* output_file_name;
 	/** Output file stream */
@@ -107,8 +115,14 @@ typedef struct fmu_check_data_t {
 	/** Log file stream */
 	FILE* log_file;
 
+    /** input data file name */
+    char* inputFileName;
+
 	/** Should simulation be done (or only XML checking) */
 	int do_simulate_flg;
+
+    /** should variable names be mangled to avoid quoting (-m switch) */
+    int do_mangle_var_names;
 
 	/** FMI standard version of the FMU */
 	fmi_version_enu_t version;
@@ -117,6 +131,8 @@ typedef struct fmu_check_data_t {
 	fmi1_import_t* fmu1;
 	/** Kind of the FMI */
 	fmi1_fmu_kind_enu_t fmu1_kind;
+    /** input data for FMU 1.0 */
+    fmi1_csv_input_t fmu1_inputData;
 	/** model variables */
 	fmi1_import_variable_list_t* vl;
 
@@ -126,7 +142,7 @@ typedef struct fmu_check_data_t {
 	fmi2_fmu_kind_enu_t fmu2_kind;
 	/** model variables */
 	fmi2_import_variable_list_t* vl2;
-} fmu_check_data_t;
+} ;
 
 
 /** Global pointer is necessary to support FMI 1.0 logging */

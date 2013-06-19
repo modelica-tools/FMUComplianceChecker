@@ -56,8 +56,8 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 		return jm_status_error;
 	}
 
-	fmistatus = fmi1_import_initialize_slave(fmu, tstart, StopTimeDefined, tend);
-	if((fmistatus == fmi1_status_ok) || (fmistatus == fmi1_status_warning)) {
+    if( fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tstart)) &&
+	    fmi1_status_ok_or_warning(fmistatus = fmi1_import_initialize_slave(fmu, tstart, StopTimeDefined, tend))) {
 		jm_log_info(cb, fmu_checker_module, "Initialized FMU for simulation starting at time %g", tstart);
 		fmistatus = fmi1_status_ok;
 	}

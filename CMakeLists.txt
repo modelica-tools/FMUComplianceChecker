@@ -181,14 +181,18 @@ FMI library version:${FMIL_VERSION}
 # Now create the checker executable
 set(SOURCE 
 	${FMUCHK_HOME}/src/Common/fmuChecker.c
+    
+    ${FMUCHK_HOME}/src/FMI1/fmi1_input_reader.c	
 	${FMUCHK_HOME}/src/FMI1/fmi1_check.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_me_sim.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_cs_sim.c
+    
 	${FMUCHK_HOME}/src/FMI2/fmi2_check.c
 	${FMUCHK_HOME}/src/FMI2/fmi2_me_sim.c
 	${FMUCHK_HOME}/src/FMI2/fmi2_cs_sim.c
 	)
 set(HEADERS 
+    ${FMUCHK_HOME}/include/fmi1_input_reader.h
 	${FMUCHK_HOME}/include/fmuChecker.h)
 
 include_directories(
@@ -303,23 +307,23 @@ endforeach(fmu)
 #get_property(fmuCheckLocation TARGET ${fmuCheck} PROPERTY LOCATION)
 if(FMUCHK_FMI_PUBLIC)
     file(TO_CMAKE_PATH ${FMUCHK_FMI_PUBLIC} FMUCHK_FMI_PUBLIC_NORMALIZED)
-    file(GLOB CROSS_CHECK_FMU_DIRS "${FMUCHK_FMI_PUBLIC_NORMALIZED}/Test_FMUs/*/*/*/*/${FMUCHK_FMI_PLATFORM}/*/" )
+    file(GLOB CROSS_CHECK_FMU_DIRS "${FMUCHK_FMI_PUBLIC_NORMALIZED}/Test_FMUs/FMI_*/*/${FMUCHK_FMI_PLATFORM}/*/*/*/*.fmu" )
 #    message(STATUS "CROSS_CHECK_FMU_DIRS = ${CROSS_CHECK_FMU_DIRS}")
     foreach(fmudirloop ${CROSS_CHECK_FMU_DIRS})
         file(TO_CMAKE_PATH ${fmudirloop} fmudir)
+        string(REGEX MATCH ".*/" fmudir "${fmudir}")
         
         file(GLOB FMUFULLPATH "${fmudir}/*.fmu" )
         file(RELATIVE_PATH FMU "${fmudir}" "${FMUFULLPATH}")
         string(REPLACE ".fmu" "" FMUBASENAME ${FMU})
         string(REPLACE "Test_FMUs" "CrossCheck_Results" CCRDIR "${fmudir}")
-        string(REPLACE "${FMUCHK_FMI_PLATFORM}/" "" CCRDIR ${CCRDIR})
-        string(REPLACE "ModelExchange" "ModelExchange/${FMUCHK_FMI_PLATFORM}/FMILibrary/${FMIL_VERSION}" CCRDIR ${CCRDIR})
-        string(REPLACE "CoSimulation" "CoSimulation/${FMUCHK_FMI_PLATFORM}/FMILibrary/${FMIL_VERSION}" CCRDIR ${CCRDIR})
+        string(REPLACE "ModelExchange/${FMUCHK_FMI_PLATFORM}" "ModelExchange/${FMUCHK_FMI_PLATFORM}/FMILibrary/${FMIL_VERSION}" CCRDIR ${CCRDIR})
+        string(REPLACE "CoSimulation/${FMUCHK_FMI_PLATFORM}" "CoSimulation/${FMUCHK_FMI_PLATFORM}/FMILibrary/${FMIL_VERSION}" CCRDIR ${CCRDIR})
         file(RELATIVE_PATH FMURELPATH "${FMUCHK_FMI_PUBLIC_NORMALIZED}/Test_FMUs" "${FMUFULLPATH}")
- #       message(STATUS "fmudir: ${fmudir} 
- #       FMU path: ${FMUFULLPATH}
- #       FMUBASENAME: ${FMUBASENAME}
- #       CCRDIR: ${CCRDIR}")
+        message(STATUS "fmudir: ${fmudir} 
+        FMU path: ${FMUFULLPATH}
+        FMUBASENAME: ${FMUBASENAME}
+        CCRDIR: ${CCRDIR}")
         
         file(GLOB BATFILENAME  "${fmudir}/Test*.bat")
         if(NOT BATFILENAME)

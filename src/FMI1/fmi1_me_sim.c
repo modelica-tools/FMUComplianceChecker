@@ -78,6 +78,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 	}
 
 	if( fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_time(fmu, tstart)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tstart)) &&
 		fmi1_status_ok_or_warning(fmistatus = fmi1_import_initialize(fmu, toleranceControlled, relativeTolerance, &eventInfo)) &&
 		( (n_states == 0) || 
 		  fmi1_status_ok_or_warning(fmistatus = fmi1_import_get_continuous_states(fmu, states, n_states))
@@ -130,8 +131,12 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 		tcur = tnext;
 
 		jm_log_verbose(cb, fmu_checker_module, "Simulation time: %g", tcur);
-		if(  !fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_time(fmu, tcur))) {
+		if(    !fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_time(fmu, tcur))) {
 			jm_log_fatal(cb, fmu_checker_module, "Could not set simulation time to %g", tcur);
+			break;
+		}
+        if(    !fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tcur))) {
+			jm_log_fatal(cb, fmu_checker_module, "Could not set inputs");
 			break;
 		}
 
