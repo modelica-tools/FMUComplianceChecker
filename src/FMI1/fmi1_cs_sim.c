@@ -81,7 +81,10 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 		}
 
 		jm_log_verbose(cb, fmu_checker_module, "Simulation step from time: %g until: %g", tcur, tnext);
-
+        if(!fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tcur))) {
+            jmstatus = jm_status_error;
+            break;
+        }
 		fmistatus = fmi1_import_do_step(fmu, tcur, hstep, newStep);
 
 		tcur = tnext;

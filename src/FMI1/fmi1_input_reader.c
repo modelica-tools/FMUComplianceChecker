@@ -60,7 +60,7 @@ void fmi1_free_input_data(fmi1_csv_input_t* indata) {
     fmi1_import_free_variable_list(indata->allInputs);
     indata->allInputs = 0;
     if(indata->boolInputData) {
-        for(i=0; i < fmi1_import_get_variable_list_size(indata->boolInputs); i++) {
+        for(i=0; i < jm_vector_get_size(jm_voidp)(indata->boolInputData); i++) {
             void** data = jm_vector_get_itemp(jm_voidp)(indata->boolInputData, i);
             free(*data);
             *data = 0;
@@ -71,7 +71,7 @@ void fmi1_free_input_data(fmi1_csv_input_t* indata) {
     fmi1_import_free_variable_list(indata->boolInputs);
     indata->boolInputs = 0;
     if(indata->intInputData) {
-        for(i=0; i < fmi1_import_get_variable_list_size(indata->intInputs); i++) {
+        for(i=0; i < jm_vector_get_size(jm_voidp)(indata->intInputData); i++) {
             void** data = jm_vector_get_itemp(jm_voidp)(indata->intInputData, i);
             free(*data);
             *data = 0;
@@ -82,7 +82,7 @@ void fmi1_free_input_data(fmi1_csv_input_t* indata) {
     fmi1_import_free_variable_list(indata->intInputs);
     indata->intInputs = 0;
     if(indata->realInputData) {
-        for(i=0; i < fmi1_import_get_variable_list_size(indata->realInputs); i++) {
+        for(i=0; i < jm_vector_get_size(jm_voidp)(indata->realInputData); i++) {
             void** data = jm_vector_get_itemp(jm_voidp)(indata->realInputData, i);
             free(*data);
             *data = 0;
@@ -307,6 +307,7 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
             }
             fmi1_import_var_list_push_back(indata->allInputs, v);
         }
+        if(buf != '\n') buf = fgetc(infile);
     }
     if( 
         !(indata->interpData = (fmi1_real_t*)malloc(sizeof(fmi1_real_t) * fmi1_import_get_variable_list_size(indata->realInputs))) ||
@@ -328,7 +329,7 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
         fmi1_integer_t* intData = 0;
         fmi1_boolean_t* boolData = 0;
         double time;
-
+        lineCnt++;
         /* first column is time */
         if(fscanf(infile,"%lg",&time) != 1) break;
         /* allocate memory for the data and store pointers */
@@ -363,11 +364,15 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
             fmi1_base_type_enu_t type = fmi1_import_get_variable_base_type(v);
             int negated = (fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias);
             int err = 0;
+            if(fgetc(infile) != sep) {
+                jm_log_error(&cdata->callbacks, fmu_checker_module, "Expected separator character, got '%c'[%x] instead", sep,sep);
+                break;
+            }
             switch(type) {
             case fmi1_base_type_real: 
                 {
                     double dbl;
-                    err = (fscanf(infile,"%g",&dbl) != 1);
+                    err = (fscanf(infile,"%lg",&dbl) != 1);
                     if(negated) dbl = -dbl;
                     realData[realVarCnt++] = dbl;
                     break;
@@ -401,13 +406,19 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
                 return jm_status_error;
             }
         }
+        buf = fgetc(infile);
+        if(buf == '\r') {
+            buf = fgetc(infile);
+        }
     }
     if(!feof(infile) || ferror(infile)) {
         fclose(infile);
-        jm_log_error(&cdata->callbacks, fmu_checker_module, "Could not process input file past line %d.", lineCnt);
+        jm_log_error(&cdata->callbacks, fmu_checker_module, "Could not process input file past line %d.", lineCnt+1);
         return jm_status_error;
     }
-
+    if(jm_vector_get_size(double)(&indata->timeStamps)) {
+        fmi1_update_input_interpolation(indata, jm_vector_get_item(double)(&indata->timeStamps,0)-1);
+    }
     return jm_status_success;
 }
 

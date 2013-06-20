@@ -23,6 +23,7 @@
 #include <JM/jm_portability.h>
 #include <fmilib.h>
 #include <fmuChecker.h>
+#include <fmu_checker_version.h>
 
 const char* fmu_checker_module = "FMUCHK";
 
@@ -83,16 +84,17 @@ void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_le
 
 
 void print_usage( ) {
-	printf("FMI compliance checker.\n"
+	printf("FMI compliance checker version " FMUCHK_VERSION "[FMILibrary:"FMIL_VERSION"]\n"
 		"Usage: fmuCheck." FMI_PLATFORM " [options] <model.fmu>\n\n"
 		"Options:\n\n"
 		"-c <separator>\t Separator character to be used in CSV output. Default is ','.\n\n"
 		"-e <filename>\t Error log file name. Default is to use standard error.\n\n"
-		"-h <stepSize>\t Step size to use in forward Euler. Takes preference over '-n'.\n\n"
+        "-f\t\t Print all variables to the output file. Default is to only print outputs.\n\n"
+		"-h <stepSize>\t Step size to use in forward Euler. Default is to use\n\t\t step size based on the number of output points.\n\n"
         "-i <infile>\t Name of the CSV file name with input data.\n\n"
 		"-l <log level>\t Log level: 0 - no logging, 1 - fatal errors only,\n\t\t 2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.\n\n"
         "-m\t\t Mangle variable names to avoid quoting (needed for some CSV\n\t\t importing applications).\n\n"
-		"-n <num_steps>\t Number of steps in forward Euler until time end.\n\t\t Default is 100 steps simulation between start and stop time.\n\n"
+		"-n <num_steps>\t Maximum number of output points. Zero means output\n\t\t in every step. Default is " DEFAULT_NUM_STEPS_STR ".\n\n"
 		"-o <filename>\t Simulation result output file name. Default is to use standard output.\n\n"
 		"-s <stopTime>\t Simulation stop time, default is to use information from\n\t\t'DefaultExperiment' as specified in the model description XML.\n\n"
 		"-t <tmp-dir>\t Temporary dir to use for unpacking the FMU.\n\t\t Default is to use system-wide directory, e.g., C:\\Temp.\n\n"
@@ -199,6 +201,10 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			cdata->log_file_name = argv[i];
 			break;
 				  }
+        case 'f': {   /*    "-f\t\t Print all variables to the output file. Default is to only print outputs.\n\n" */
+            cdata->do_output_all_vars = 1;
+            break;
+                  }
 		case 't': {/*tmp-dir>\t Temporary dir to use for unpacking the fmu.\n\t Default is to create an unique temporary dir.\n"*/
 			i++;
 			cdata->temp_dir = argv[i];
@@ -345,6 +351,75 @@ jm_status_enu_t checked_fprintf(fmu_check_data_t* cdata, const char* fmt, ...) {
 	return status;
 }
 
+jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn) {
+    char buf[10000], *cursrc, *curdest;
+    int need_quoting = 0;
+    jm_status_enu_t status = jm_status_success;
+   	char replace_sep = ':';
+	
+	if(cdata->CSV_separator == ':') {
+		replace_sep = '|';
+	}
+
+    if(cdata->do_mangle_var_names) {
+        /* skip spaces ans repace separator character in column names */
+        sprintf(buf, "%s", vn);
+        curdest = cursrc = buf;
+        while(*cursrc) {
+            if(*cursrc != ' ') {
+                if(*cursrc == cdata->CSV_separator)
+                    *curdest = replace_sep;
+                else if(curdest != cursrc)
+                    *curdest = *cursrc;
+                curdest++;
+            }
+            cursrc++;
+        }
+    }
+    else {
+        int j = 0;
+        while(vn[j]) {
+            char ch = vn[j];
+            if((ch == cdata->CSV_separator) 
+                || (ch == '"') 
+                || (ch == ' ') 
+                || (ch == '\n')
+                || (ch == '\t')
+                || (ch == '\r')) {
+                    need_quoting = 1;
+                    break;
+            }
+            j++;
+        }
+        if(need_quoting) {
+            curdest = buf;
+            *curdest = '"';
+            curdest++;
+            j = 0;
+            while(vn[j]) {
+                char ch = vn[j];
+                if(ch == '"') {
+                    *curdest = ch;
+                    curdest++;
+                }
+                *curdest = ch;
+                curdest++;
+                j++;
+            }
+            *curdest = '"';
+            curdest++;
+            *curdest = 0;
+        }
+        else {
+            sprintf(buf, "%s", vn);
+        }
+    }
+    status = checked_fprintf(cdata, "%c%s", cdata->CSV_separator, buf);
+    if(status != jm_status_success) {
+        return jm_status_error;
+    }
+    return status;
+}
 
 void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->FMUPath = 0;
@@ -394,6 +469,7 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
     cdata->inputFileName = 0;
 	cdata->do_simulate_flg = 1;
     cdata->do_mangle_var_names = 0;
+    cdata->do_output_all_vars = 0;
 
 	cdata->version = fmi_version_unknown_enu;
 

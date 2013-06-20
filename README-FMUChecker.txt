@@ -32,23 +32,27 @@ Usage: fmuCheck.<platform> [options] <model.fmu>
 
 Options:
 
--c <separator>   Separator character to be used in CSV output. Default is ';'.
+-c <separator>   Separator character to be used in CSV output. Default is ','.
 
 -e <filename>    Error log file name. Default is to use standard error.
 
--h <stepSize>    Step size to use in forward Euler. Takes preference over '-n'.
+-f               Print all variables to the output file. Default is to only print outputs.
 
--i               Print enums and booleans as integers (default is to print item 
-				names, true and false).
+-h <stepSize>    Step size to use in forward Euler. Default is to use
+                 step size based on the number of output points.
+
+-i <infile>      Name of the CSV file name with input data.
 
 -l <log level>   Log level: 0 - no logging, 1 - fatal errors only,
                  2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.
 
--n <num_steps>   Number of steps in forward Euler until time end.
-                 Default is 100 steps simulation between start and stop time.
+-m               Mangle variable names to avoid quoting (needed for some CSV
+                 importing applications).
 
--o <filename>    Simulation result output file name. Default is to use standard 
-				output.
+-n <num_steps>   Maximum number of output points. Zero means output
+                 in every step. Default is 500.
+
+-o <filename>    Simulation result output file name. Default is to use standard output.
 
 -s <stopTime>    Simulation stop time, default is to use information from
                 'DefaultExperiment' as specified in the model description XML.
@@ -56,14 +60,11 @@ Options:
 -t <tmp-dir>     Temporary dir to use for unpacking the FMU.
                  Default is to use system-wide directory, e.g., C:\Temp.
 
--x               Check XML and stop. Default is to load the DLL and simulate
+-x               Check XML and stop, default is to load the DLL and simulate
                  after this.
 
--z <unzip-dir>   Do not create and remove temp directory but use the specified 
-				one for unpacking the FMU. The option takes precendence over -t.
-				This option is specifically intended for debugging. The unzipped
-				files are not deleted and DLL is not unloaded making it possible
-				for memory debugger such as valgrind to produce detailed reports.
+-z <unzip-dir>   Do not create and remove temp directory but use the specified one
+                 for unpacking the FMU. The option takes precendence over -t.
 
 Command line examples:
 

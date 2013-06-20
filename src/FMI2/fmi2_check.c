@@ -102,6 +102,11 @@ int annotation_end_handle(void *context, const char *elm) {
 	return 0;
 }
 
+int fmi2_filter_outputs(fmi2_import_variable_t*vl, void * data) {
+    return (fmi2_import_get_causality(vl) == fmi1_causality_enu_output);
+}
+
+
 jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 	fmi2_callback_functions_t callBackFunctions;
 	jm_callbacks* cb = &cdata->callbacks;
@@ -126,7 +131,27 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
     jm_log_info(cb, fmu_checker_module,"FMU kind: %s", fmi2_fmu_kind_to_string(cdata->fmu2_kind));
 
 	cdata->vl2 = fmi2_import_get_variable_list(cdata->fmu2, 0);
-	if(!cdata->vl2) {
+    if(cdata->vl2) {
+        size_t nv = fmi2_import_get_variable_list_size(cdata->vl2);
+	    size_t i;
+        for(i=1; i < nv;i++) {
+            fmi2_import_variable_t* v1 = fmi2_import_get_variable(cdata->vl2, i-1);
+            fmi2_import_variable_t* v2 = fmi2_import_get_variable(cdata->vl2, i);
+            if(strcmp(fmi2_import_get_variable_name(v1), fmi2_import_get_variable_name(v2)) == 0) {
+                jm_log_error(cb,fmu_checker_module, 
+                    "Two variables with the same name %s found. This is not allowed.",
+                    fmi2_import_get_variable_name(v1) );
+            }
+        }
+    }
+
+    if(cdata->vl2 && !cdata->do_output_all_vars) {
+        fmi2_import_variable_list_t* vl = fmi2_import_filter_variables(cdata->vl2,fmi2_filter_outputs,0);
+        fmi2_import_free_variable_list(cdata->vl2);
+        cdata->vl2 = vl;
+    }
+
+    if(!cdata->vl2) {
 		jm_log_fatal(cb, fmu_checker_module,"Could not construct model variables list");
 		return jm_status_error;
 	}
@@ -255,42 +280,32 @@ jm_status_enu_t fmi2_write_csv_header(fmu_check_data_t* cdata) {
 		return jm_status_error;
 	}
 
-	for(i = 0; i < n; i++) {
-		char buf[10000], *cursrc, *curdest;
-		fmi2_import_variable_t * v = fmi2_import_get_variable(vl, i);
-		const char* vn = fmi2_import_get_variable_name(v);
-		fmi2_import_variable_t * vb = fmi2_import_get_variable_alias_base(cdata->fmu2, v);
-		jm_status_enu_t status = jm_status_success;
-		switch(fmi2_import_get_variable_alias_kind(v)) {
-			case fmi2_variable_is_not_alias:
-				sprintf(buf, "%s", vn);
-				break;
-			case fmi2_variable_is_alias:
-				sprintf(buf, "%s=%s", vn, fmi2_import_get_variable_name(vb));
-				break;
-			default:
-				assert(0);
-			}
-		/* skip spaces ans repace separator character in column names */
-		curdest = cursrc = buf;
-		while(*cursrc) {
-			if(*cursrc != ' ') {
-				if(*cursrc == cdata->CSV_separator)
-					*curdest = replace_sep;
-				else if(curdest != cursrc)
-					*curdest = *cursrc;
-				curdest++;
-			}
-			cursrc++;
-		}
-		*curdest = 0;
-		status = checked_fprintf(cdata, "%c%s", cdata->CSV_separator, buf);
+    for(i = 0; i < n; i++) {
+/*        char buf[10000], *cursrc, *curdest;
+        int need_quoting = 0; */
+        fmi2_import_variable_t * v = fmi2_import_get_variable(vl, i);
+        const char* vn = fmi2_import_get_variable_name(v);
+        fmi2_import_variable_t * vb = fmi2_import_get_variable_alias_base(cdata->fmu2, v);
+        jm_status_enu_t status = jm_status_success;
+#if 0
+        switch(fmi2_import_get_variable_alias_kind(v)) {
+        case fmi2_variable_is_not_alias:
+            sprintf(buf, "%s", vn);
+            break;
+        case fmi2_variable_is_alias:
+            sprintf(buf, "%s=%s", vn, fmi2_import_get_variable_name(vb));
+            break;
+        default:
+            assert(0);
+        }
+#endif
+        status = check_fprintf_var_name(cdata, vn);
 		if(status != jm_status_success) {
 			return jm_status_error;
 		}
 	}
 
-	if(checked_fprintf(cdata, "\n") != jm_status_success) {
+	if(checked_fprintf(cdata, "\r\n") != jm_status_success) {
 		return jm_status_error;
 	}
 	return jm_status_success;
@@ -310,19 +325,21 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 	char fmt_true[20];
 	char fmt_false[20];
 
-    if(time < cdata->nextOutputTime) {
-        return jm_status_success;
-    }
-    else {
-        cdata->nextOutputStep++;
-        cdata->nextOutputTime = cdata->stopTime*cdata->nextOutputStep/cdata->numSteps;
-        if(cdata->nextOutputTime > cdata->stopTime) {
-            cdata->nextOutputTime = cdata->stopTime;
+    if(cdata->numSteps > 0) {
+        if(time < cdata->nextOutputTime) {
+            return jm_status_success;
+        }
+        else {
+            cdata->nextOutputStep++;
+            cdata->nextOutputTime = cdata->stopTime*cdata->nextOutputStep/cdata->numSteps;
+            if(cdata->nextOutputTime > cdata->stopTime) {
+                cdata->nextOutputTime = cdata->stopTime;
+            }
         }
     }
 
 	fmt_sep[0] = cdata->CSV_separator; fmt_sep[1] = 0;
-	sprintf(fmt_r, "%c%s", cdata->CSV_separator, "%g");
+	sprintf(fmt_r, "%c%s", cdata->CSV_separator, "%.16E");
 	sprintf(fmt_i, "%c%s", cdata->CSV_separator, "%d");
 #ifdef SUPPORT_out_enum_as_int_flag
 	if(!cdata->out_enum_as_int_flag) {
@@ -413,7 +430,7 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 			return jm_status_error;
 		}
 	}
-	if(checked_fprintf(cdata, "\n")!= jm_status_success) {
+	if(checked_fprintf(cdata, "\r\n")!= jm_status_success) {
 		return jm_status_error;
 	}
 	return jm_status_success;

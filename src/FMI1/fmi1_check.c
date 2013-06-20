@@ -108,6 +108,27 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
     jm_log_info(cb, fmu_checker_module,"FMU kind: %s", fmi1_fmu_kind_to_string(cdata->fmu1_kind));
 
 	cdata->vl = fmi1_import_get_variable_list(cdata->fmu1);
+
+    if(cdata->vl) {
+        size_t nv = fmi1_import_get_variable_list_size(cdata->vl);
+	    size_t i;
+        for(i=1; i < nv;i++) {
+            fmi1_import_variable_t* v1 = fmi1_import_get_variable(cdata->vl, i-1);
+            fmi1_import_variable_t* v2 = fmi1_import_get_variable(cdata->vl, i);
+            if(strcmp(fmi1_import_get_variable_name(v1), fmi1_import_get_variable_name(v2)) == 0) {
+                jm_log_error(cb,fmu_checker_module, 
+                    "Two variables with the same name %s found. This is not allowed.",
+                    fmi1_import_get_variable_name(v1) );
+            }
+        }
+    }
+
+    if(cdata->vl && !cdata->do_output_all_vars) {
+        fmi1_import_variable_list_t* vl = fmi1_import_filter_variables(cdata->vl,fmi1_filter_outputs,0);
+        fmi1_import_free_variable_list(cdata->vl);
+        cdata->vl = vl;
+    }
+
 	if(!cdata->vl) {
 		jm_log_fatal(cb, fmu_checker_module,"Could not construct model variables list");
 		return jm_status_error;
@@ -210,8 +231,8 @@ jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 	}
 
 	for(i = 0; i < n; i++) {
-		char buf[10000], *cursrc, *curdest;
-        int need_quoting = 0;
+/*		char buf[10000], *cursrc, *curdest;
+        int need_quoting = 0; */
 		fmi1_import_variable_t * v = fmi1_import_get_variable(vl, i);
 		const char* vn = fmi1_import_get_variable_name(v);
 		fmi1_import_variable_t * vb = fmi1_import_get_variable_alias_base(cdata->fmu1, v);
@@ -239,60 +260,9 @@ jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 			default:
 				assert(0);
 			}
-#else
-        if(cdata->do_mangle_var_names) {
-            /* skip spaces ans repace separator character in column names */
-            sprintf(buf, "%s", vn);
-            curdest = cursrc = buf;
-            while(*cursrc) {
-                if(*cursrc != ' ') {
-                    if(*cursrc == cdata->CSV_separator)
-                        *curdest = replace_sep;
-                    else if(curdest != cursrc)
-                        *curdest = *cursrc;
-                    curdest++;
-                }
-                cursrc++;
-            }
-        }
-        else {
-            int j = 0;
-            while(vn[j]) {
-                char ch = vn[j];
-                if((ch == cdata->CSV_separator) 
-                    || (ch == '"') 
-                    || (ch == ' ') 
-                    || (ch == '\n')
-                    || (ch == '\t')
-                    || (ch == '\r')) {
-                        need_quoting = 1;
-                        break;
-                }
-                j++;
-            }
-            if(need_quoting) {
-                curdest = buf;
-                *curdest = '"';
-                curdest++;
-                j = 0;
-                while(vn[j]) {
-                    char ch = vn[j];
-                    if(ch == '"') {
-                        *curdest = ch;
-                        curdest++;
-                    }
-                    *curdest = ch;
-                    curdest++;
-                    j++;
-                }
-                *curdest = 0;
-            }
-            else {
-                sprintf(buf, "%s", vn);
-            }
-        }
 #endif
-		status = checked_fprintf(cdata, "%c%s", cdata->CSV_separator, buf);
+
+        status = check_fprintf_var_name(cdata, vn);
 		if(status != jm_status_success) {
 			return jm_status_error;
 		}
@@ -318,19 +288,21 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 	char fmt_true[20];
 	char fmt_false[20];
 
-    if(time < cdata->nextOutputTime) {
-        return jm_status_success;
-    }
-    else {
-        cdata->nextOutputStep++;
-        cdata->nextOutputTime = cdata->stopTime*cdata->nextOutputStep/cdata->numSteps;
-        if(cdata->nextOutputTime > cdata->stopTime) {
-            cdata->nextOutputTime = cdata->stopTime;
+    if(cdata->numSteps > 0) {
+        if(time < cdata->nextOutputTime) {
+            return jm_status_success;
+        }
+        else {
+            cdata->nextOutputStep++;
+            cdata->nextOutputTime = cdata->stopTime*cdata->nextOutputStep/cdata->numSteps;
+            if(cdata->nextOutputTime > cdata->stopTime) {
+                cdata->nextOutputTime = cdata->stopTime;
+            }
         }
     }
 
 	fmt_sep[0] = cdata->CSV_separator; fmt_sep[1] = 0;
-	sprintf(fmt_r, "%c%s", cdata->CSV_separator, "%g");
+	sprintf(fmt_r, "%c%s", cdata->CSV_separator, "%.16E");
 	sprintf(fmt_i, "%c%s", cdata->CSV_separator, "%d");
 #ifdef SUPPORT_out_enum_as_int_flag
 	if(!cdata->out_enum_as_int_flag) {
@@ -344,7 +316,7 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 		sprintf(fmt_false, "%c0", cdata->CSV_separator);
 	}
 
-	if(checked_fprintf(cdata, "%g", time) != jm_status_success) {
+	if(checked_fprintf(cdata, "%.16E", time) != jm_status_success) {
 		return jm_status_error;
 	}
 

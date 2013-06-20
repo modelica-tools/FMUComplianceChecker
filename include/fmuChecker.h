@@ -89,6 +89,8 @@ struct fmu_check_data_t {
     int stepSizeSetByUser;
 	/** Number of steps to take */
 #define DEFAULT_NUM_STEPS 500
+#define DEFAULT_NUM_STEPS_STR "500"
+
 	size_t numSteps;
     /** Flag indicating if number of steps is user defined in command line */
     int numStepsSetByUser;
@@ -123,6 +125,9 @@ struct fmu_check_data_t {
 
     /** should variable names be mangled to avoid quoting (-m switch) */
     int do_mangle_var_names;
+
+    /** should all variables be printed (-f switch) */
+    int do_output_all_vars;
 
 	/** FMI standard version of the FMU */
 	fmi_version_enu_t version;
@@ -173,6 +178,9 @@ jm_status_enu_t checked_print_quoted_str(fmu_check_data_t* cdata, const char* st
 
 /** Write out the data into the output file */
 jm_status_enu_t checked_fprintf(fmu_check_data_t* cdata, const char* fmt, ...);
+
+/** Write out separator and variable name. Variable name is quoted/mangled if needed */
+jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn);
 
 /** Simulate an FMI 1.0 ME FMU */
 jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata);

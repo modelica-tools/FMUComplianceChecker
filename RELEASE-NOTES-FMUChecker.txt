@@ -1,6 +1,31 @@
 File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
 
+2013-06-20 Version 2.0a2
+- Feature update:
+ - Output format modified:
+  - CSV files are now RFC 4180 compatible by default (comma is the 
+  default field separator; CR-LF is used as end of line; variable
+  names are enclosed in double quotes as needed).
+  - -m switch is itroduced to support mangling of variable names 
+  as needed by CSV importers that don't handle quoting.
+  - Only variable names are written out in the header line (no
+  aliasing information is provided).
+  - Numerical values are printed for enum and boolean variables.
+  - -n switch only controls the number of output points and works
+  orthogonal to the -h switch specifying the time step length.
+  - Only variables with causality output are written out by default.
+  -f switch ma
+ - Support for input CSV files.
+   -i <file name> - flag is now used to specify file name with input
+   signals for the FMU. Details on the file format are given in
+   the README-FMUChecker.txt.
+- Version information printed as a part of the help screen.
+- Build script supports automatic cross-checking with FMI Library driven by
+  compliance checker. See information in BUILD-FMUChecker.txt for details.
+- Updated the header files for FMI2.0 to correspond the status before 2.0RC1.
+
+
 2012-10-18 Version 2.0a1
 - Added support for FMI 2.0beta4 with the following modifications:
   - Modified and corrected standard header files as proposed in

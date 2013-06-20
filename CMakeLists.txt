@@ -177,6 +177,12 @@ file(WRITE ${CMAKE_BINARY_DIR}/VERSION-FMUChecker.txt
 "FMI checker version:${FMUCHK_VERSION}
 FMI library version:${FMIL_VERSION}
 ")
+file(WRITE ${CMAKE_BINARY_DIR}/fmu_checker_version.h 
+"
+/* Version information generated based on SVN info */
+#define FMUCHK_VERSION \"${FMUCHK_VERSION}\"
+#define FMIL_VERSION \"${FMIL_VERSION}\"
+")
 
 # Now create the checker executable
 set(SOURCE 
@@ -198,7 +204,8 @@ set(HEADERS
 include_directories(
 	${FMUCHK_BUILD}/FMIL/install/include/
 	include/Common/
-	include)
+	include
+    ${CMAKE_BINARY_DIR})
 
 add_executable(${fmuCheck} ${SOURCE} ${HEADERS})
 target_link_libraries(${fmuCheck} fmilib)
@@ -361,7 +368,7 @@ if(FMUCHK_FMI_PUBLIC)
             string(REPLACE "/" "_" testname "check_${testname}")
             string(REPLACE ":" "_" testname ${testname})
             message(STATUS "Adding test named ${testname}")
-#           message(STATUS "Command: ${fmuCheck} -t ${TMPDIR} -o result.csv -e log.txt ${STEPFLAG} ${STOPTIMEFLAG} ${FMUFULLPATH}")
+#           message(STATUS "Command: ${fmuCheck} -t ${TMPDIR} -f -o result.csv -e log.txt ${STEPFLAG} ${STOPTIMEFLAG} ${FMUFULLPATH}")
             file(WRITE ${CCRDIR}/README.txt
 "Tested using: FMI Library version ${FMIL_VERSION}
 Test driver: FMI Compliance checker version: ${FMUCHK_VERSION}
@@ -378,7 +385,7 @@ Simulation results: 'result.csv'"
 #     cmake -DTESTFMUSDIR=<path to Test_FMUs dir> -DTMPDIR=<temp dir> -DCHECKER=<checker application> -P run_test.cmake
 file(REMOVE passed failed)
 Execute_process(
-    COMMAND \${CHECKER} -t \${TMPDIR} -o result.csv -e log.txt ${STEPFLAG} ${STOPTIMEFLAG} \${TESTFMUSDIR}/${FMURELPATH}
+    COMMAND \${CHECKER} -t \${TMPDIR} -f -o result.csv -e log.txt ${STEPFLAG} ${STOPTIMEFLAG} \${TESTFMUSDIR}/${FMURELPATH}
     RESULT_VARIABLE passed)
 if(passed EQUAL 0)
     file(WRITE passed \"\")
