@@ -32,7 +32,7 @@ The basic features include:
     field separator may be specified as an option).
     - can supply numerical input data to the simulation from an CSV file. 
     String inputs are currently not supported. This feature is currently
-    only available for FMI 1.0 fmus. The input file is expected to be 
+    only available for FMI 1.0 FMUs. The input file is expected to be 
     RFC4180 compatible with following modifications:
       - The file must be in UTF-8 encoding;
       - First line must be a header listing the variable names;
@@ -73,7 +73,7 @@ Options:
 -n <num_steps>   Maximum number of output points. Zero means output
                  in every step. Default is 500.
 
--o <filename>    Simulation result output file name. Default is to use standard output.
+-o <filename>    Simulation result output CSV file name. Default is to use standard output.
 
 -s <stopTime>    Simulation stop time, default is to use information from
                 'DefaultExperiment' as specified in the model description XML.

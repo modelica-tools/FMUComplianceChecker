@@ -26,7 +26,7 @@ Release notes for FMI Compliance Checker (FMUChecker) application.
  - Build script supports automatic cross-checking with FMI Library driven by
     compliance checker. See information on FMUCHK_FMI_PUBLIC in 
     BUILD-FMUChecker.txt for details.
- - Updated the header files for FMI2.0 (still beta4 compatible).
+ - Updated the header files for FMI 2.0 (still beta4 compatible).
 
 2012-10-18 Version 2.0a1
 - Added support for FMI 2.0beta4 with the following modifications:
