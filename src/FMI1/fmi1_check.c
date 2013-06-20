@@ -138,10 +138,11 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 	}
 
 	if(cb->log_level >= jm_log_level_info) {
+        char buf[10000];
 		fmi1_import_model_counts_t counts;
 		fmi1_import_collect_model_counts(cdata->fmu1, &counts);
-		jm_log_info(cb, fmu_checker_module,
-			"The FMU contains:\n"
+        sprintf(buf, 
+            "The FMU contains:\n"
 			"%u constants\n"
 			"%u parameters\n"
 			"%u discrete variables\n"
@@ -168,6 +169,8 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 			counts.num_enum_vars,
 			counts.num_bool_vars,
 			counts.num_string_vars);
+
+		checker_logger(cb, fmu_checker_module,jm_log_level_info,buf);
 	}
 
 	jm_log_info(cb, fmu_checker_module,"Printing output file header");
@@ -199,7 +202,7 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 	if(cdata->tmpPath == cdata->unzipPath) {
 		fmi1_import_set_debug_mode(cdata->fmu1, 1);
 	}
-	jm_log_info(cb,fmu_checker_module,"Version returned from FMU:   %s\n", fmi1_import_get_version(cdata->fmu1));
+	jm_log_info(cb,fmu_checker_module,"Version returned from FMU:   %s", fmi1_import_get_version(cdata->fmu1));
 
 	{
 		const char* platform;
@@ -209,7 +212,7 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 		else
 			platform= fmi1_import_get_types_platform(cdata->fmu1);
 		if(strcmp(platform, fmi1_get_platform())) 
-			jm_log_error(cb,fmu_checker_module,"Platform type returned from FMU %s does not match the checker  %s\n",platform, fmi1_get_platform() );
+			jm_log_error(cb,fmu_checker_module,"Platform type returned from FMU %s does not match the checker  %s",platform, fmi1_get_platform() );
 	}
 
 	if(cdata->fmu1_kind == fmi1_fmu_kind_enu_me)

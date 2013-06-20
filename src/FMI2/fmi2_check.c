@@ -162,8 +162,10 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 
 	if(cb->log_level >= jm_log_level_info) {
 		fmi2_import_model_counts_t counts;
+        char buf[10000];
+
 		fmi2_import_collect_model_counts(cdata->fmu2, &counts);
-		jm_log_info(cb, fmu_checker_module,
+        sprintf(buf, 
 			"The FMU contains:\n"
 			"%u constants\n"
 			"%u parameters\n"
@@ -191,6 +193,7 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 			counts.num_enum_vars,
 			counts.num_bool_vars,
 			counts.num_string_vars);
+		checker_logger(cb, fmu_checker_module,jm_log_level_info,buf);
 	}
 
 	jm_log_info(cb, fmu_checker_module,"Printing output file header");
@@ -202,7 +205,10 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 		jm_log_verbose(cb, fmu_checker_module,"Simulation was not requested");
 		return jm_status_success;
 	}
-
+    else if(cdata->inputFileName) {
+        jm_log_error(cb, fmu_checker_module,"Input data files are only supported for FMI 1.0 FMUs so far.");
+        return jm_status_error;
+    }
 
 	callBackFunctions.allocateMemory = check_calloc;
 	callBackFunctions.freeMemory = check_free;

@@ -375,6 +375,7 @@ jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn) 
             }
             cursrc++;
         }
+        *curdest = 0;
     }
     else {
         int j = 0;
