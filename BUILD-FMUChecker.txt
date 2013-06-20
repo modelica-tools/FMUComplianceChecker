@@ -24,20 +24,15 @@ well.
 The primary target of the library build script is a command-line
 executable:  <prefix>/bin/fmuChecket.<platform>[.extention]
 
-Note that FMUChecker depends on FMI Library, that needs to be downloaded
-separately from <http://www.fmi-standard.org>, or alternatively, from
-<http://www.fmi-library.org>. For more information on FMI Library, see
+Note that FMUChecker depends on FMI Library that is stored in the FMIL
+subdirectory of the source tree. For more information on FMI Library, see
 <http://www.fmi-library.org>. The current version of the FMUChecker
-depends on FMI Library v2.0a1.
+depends on FMI Library v2.0a5.
 
 The following FMUChecker specific build configuration options are provided:
 
 FMUCHK_INSTALL_PREFIX - Prefix prepended to install directories. 
 	Default: <build_dir>/../install
-	
-FMUCHK_FMIL_HOME_DIR - Path to the directory with FMIL sources
-	downloaded from <http://www.jmodelica.org/FMILibrary>. 
-	Default: "No FMIL"
 	
 FMUCHK_FMI_STANDARD_HEADERS  - Path to the FMI standard headers directory. 
 	Leave empty to use the headers from FMIL, which is the default.
@@ -52,7 +47,7 @@ FMUCHK_TEST_FMUS_DIR - Directory with FMUs to be used in tests (checker
 	Default: ${FMUCHK_HOME}/TestFMUs.
 	
 FMUCHK_BUILD_WITH_STATIC_RTLIB - Use static run-time libraries (/MT or 
-	/MTd linker flags. Default: ON. Only available for Microsoft Visual
+	/MTd linker flags). Default: ON. Only available for Microsoft Visual
 	Studio projects.
 
 FMUCHK_FMI_PLATFORM - Defines the subdirectory within FMU where binaries 
@@ -61,3 +56,9 @@ FMUCHK_FMI_PLATFORM - Defines the subdirectory within FMU where binaries
 	value normally requires modification to compiler and linker flags
 	to get a consistent build. May be used to build 32-bit binary
 	on a 64-bit system.
+
+FMUCHK_FMI_PUBLIC - Specifies a directory with Subversion check-out from 
+    https://svn.fmi-standard.org/fmi/branches/public with test fmus. The 
+    directory is expected to contain Test_FMUs and CrossCheck_Results 
+    subdirectories. Checker will run cross-check with FMI Library for
+    all the FMUs found as a part of test suit.

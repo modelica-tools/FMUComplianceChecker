@@ -130,7 +130,8 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 
     jm_log_info(cb, fmu_checker_module,"FMU kind: %s", fmi2_fmu_kind_to_string(cdata->fmu2_kind));
 
-	cdata->vl2 = fmi2_import_get_variable_list(cdata->fmu2, 0);
+    cdata->vl2 = fmi2_import_get_variable_list(cdata->fmu2,1);
+
     if(cdata->vl2) {
         size_t nv = fmi2_import_get_variable_list_size(cdata->vl2);
 	    size_t i;
@@ -143,7 +144,10 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
                     fmi2_import_get_variable_name(v1) );
             }
         }
+        fmi2_import_free_variable_list(cdata->vl2);
     }
+
+	cdata->vl2 = fmi2_import_get_variable_list(cdata->fmu2, 0);
 
     if(cdata->vl2 && !cdata->do_output_all_vars) {
         fmi2_import_variable_list_t* vl = fmi2_import_filter_variables(cdata->vl2,fmi2_filter_outputs,0);

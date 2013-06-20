@@ -2,7 +2,7 @@ File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
 
 2013-06-20 Version 2.0a2
-- Feature update:
+- Feature updates:
  - Output format modified:
   - CSV files are now RFC 4180 compatible by default (comma is the 
   default field separator; CR-LF is used as end of line; variable
@@ -20,11 +20,13 @@ Release notes for FMI Compliance Checker (FMUChecker) application.
    -i <file name> - flag is now used to specify file name with input
    signals for the FMU. Details on the file format are given in
    the README-FMUChecker.txt.
-- Version information printed as a part of the help screen.
-- Build script supports automatic cross-checking with FMI Library driven by
-  compliance checker. See information in BUILD-FMUChecker.txt for details.
-- Updated the header files for FMI2.0 to correspond the status before 2.0RC1.
-
+ - Version information printed as a part of the help screen.
+- Packaging updates:
+ - FMI Library is distirbuted as a part of checker's source distrubution. 
+ - Build script supports automatic cross-checking with FMI Library driven by
+    compliance checker. See information on FMUCHK_FMI_PUBLIC in 
+    BUILD-FMUChecker.txt for details.
+ - Updated the header files for FMI2.0 (still beta4 compatible).
 
 2012-10-18 Version 2.0a1
 - Added support for FMI 2.0beta4 with the following modifications:
