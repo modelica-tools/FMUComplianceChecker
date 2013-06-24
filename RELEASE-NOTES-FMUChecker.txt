@@ -15,14 +15,14 @@ Release notes for FMI Compliance Checker (FMUChecker) application.
   - -n switch only controls the number of output points and works
   orthogonal to the -h switch specifying the time step length.
   - Only variables with causality output are written out by default.
-  -f switch ma
+  -f switch may be used to write out all variables.
  - Support for input CSV files.
    -i <file name> - flag is now used to specify file name with input
    signals for the FMU. Details on the file format are given in
    the README-FMUChecker.txt.
  - Version information printed as a part of the help screen.
 - Packaging updates:
- - FMI Library is distirbuted as a part of checker's source distrubution. 
+ - FMI Library is distirbuted as a part of checker's source. 
  - Build script supports automatic cross-checking with FMI Library driven by
     compliance checker. See information on FMUCHK_FMI_PUBLIC in 
     BUILD-FMUChecker.txt for details.
