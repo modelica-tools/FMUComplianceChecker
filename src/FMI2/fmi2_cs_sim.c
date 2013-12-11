@@ -21,6 +21,9 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 	fmi2_string_t fmuGUID = fmi2_import_get_GUID(fmu);
 	fmi2_boolean_t visible = fmi2_false;
 
+	fmi2_boolean_t toleranceControlled = fmi2_false;
+	fmi2_real_t relativeTolerance = fmi2_import_get_default_experiment_tolerance(fmu);
+
 	fmi2_real_t tstart = fmi2_import_get_default_experiment_start(fmu);
 	fmi2_real_t tcur = tstart;
 	fmi2_real_t hstep;
@@ -31,18 +34,21 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 
 	cdata->instanceNameToCompare = "Test FMI 2.0 CS";
 	cdata->instanceNameSavedPtr = 0;
-	jmstatus = fmi2_import_instantiate_slave(fmu, cdata->instanceNameToCompare, 0, visible);
+	jmstatus = fmi2_import_instantiate(fmu, cdata->instanceNameToCompare, fmi2_cosimulation, 0, visible);
+
 	cdata->instanceNameSavedPtr = cdata->instanceNameToCompare;
 
 	if (jmstatus == jm_status_error) {
 		jm_log_fatal(cb, fmu_checker_module, "Could not instantiate the model");
 		return jm_status_error;
 	}
-
-	fmistatus = fmi2_import_initialize_slave(fmu, 0 /* relTolerance */, tstart, StopTimeDefined, tend);
-	if((fmistatus == fmi2_status_ok) || (fmistatus == fmi2_status_warning)) {
-		jm_log_info(cb, fmu_checker_module, "Initialized FMU for simulation starting at time %g", tstart);
-		fmistatus = fmi2_status_ok;
+	
+	//fmistatus = fmi2_import_initialize(fmu, 0 /* relTolerance */, tstart, StopTimeDefined, tend);
+	if(fmi2_status_ok_or_warning(fmistatus =  fmi2_import_setup_experiment(fmu, toleranceControlled,relativeTolerance, tstart, fmi2_false, 0.0)) && 
+		fmi2_status_ok_or_warning(fmistatus = fmi2_import_enter_initialization_mode(fmu)) &&
+		fmi2_status_ok_or_warning(fmi2_import_exit_initialization_mode(fmu))){
+			jm_log_info(cb, fmu_checker_module, "Initialized FMU for simulation starting at time %g", tstart);
+			fmistatus = fmi2_status_ok;
 	}
 	else {
 			jm_log_fatal(cb, fmu_checker_module, "Failed to initialize FMU for simulation (FMU status: %s)", fmi2_status_to_string(fmistatus));
@@ -115,7 +121,7 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 	}
 
 	if(fmistatus != fmi2_status_fatal) {
-		fmistatus = fmi2_import_terminate_slave(fmu);
+		fmistatus = fmi2_import_terminate(fmu);
 	}
 
 	if(  (fmistatus != fmi2_status_ok) && (fmistatus != fmi2_status_warning)) {
@@ -123,7 +129,7 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 	}
 
 	if(fmistatus != fmi2_status_fatal) {
-		fmi2_import_free_slave_instance(fmu);
+		fmi2_import_free_instance(fmu);
 	}
 
 	return jmstatus;
