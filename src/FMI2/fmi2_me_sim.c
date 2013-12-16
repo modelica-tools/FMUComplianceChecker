@@ -93,7 +93,9 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 		return jm_status_error;
 	}
 	
-	if (fmi2_status_ok_or_warning(fmistatus =  fmi2_import_setup_experiment(fmu, toleranceControlled,relativeTolerance, tstart, fmi2_false, 0.0)) && 
+	if (
+		fmi2_status_ok_or_warning(fmistatus = fmi2_set_inputs(cdata, tstart)) &&
+		fmi2_status_ok_or_warning(fmistatus =  fmi2_import_setup_experiment(fmu, toleranceControlled,relativeTolerance, tstart, fmi2_false, 0.0)) && 
 		fmi2_status_ok_or_warning(fmistatus = fmi2_import_set_time(fmu, tstart)) && /*Is this required?*/
 		fmi2_status_ok_or_warning(fmistatus = fmi2_import_enter_initialization_mode(fmu)) &&
 		fmi2_status_ok_or_warning(fmi2_import_exit_initialization_mode(fmu))){
@@ -163,6 +165,14 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 			tnext = tend;				
 		}
 
+
+		/*Check for eternal events*/
+		jmstatus = fmi2_check_external_events(tcur,tnext, &eventInfo, &cdata->fmu2_inputData);
+		if( jmstatus > jm_status_warning) {
+			jm_log_fatal(cb, fmu_checker_module, "Detection of input data events failed for Simtime %g", tcur);
+			break;
+		}
+
 		/* adjust for time events */ 
 		if (eventInfo.nextEventTimeDefined && (tnext >= eventInfo.nextEventTime)) {
 			tnext = eventInfo.nextEventTime;
@@ -177,6 +187,11 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 			jm_log_fatal(cb, fmu_checker_module, "Could not set simulation time to %g", tcur);
 			break;
 		}
+
+		if(!fmi2_status_ok_or_warning(fmistatus = fmi2_set_inputs(cdata, tnext))) {
+            jmstatus = jm_status_error;
+            break;
+        }
 
 		/* integrate */
 		for (k = 0; k < n_states; k++) {
