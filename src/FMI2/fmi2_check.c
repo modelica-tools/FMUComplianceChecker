@@ -128,7 +128,7 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 
 	cdata->fmu2_kind = fmi2_import_get_fmu_kind(cdata->fmu2);
 
-    jm_log_info(cb, fmu_checker_module,"FMU kind: %s", fmi2_fmu_kind_to_string(cdata->fmu2_kind));
+	jm_log_info(cb, fmu_checker_module,"FMU kind: %s", fmi2_fmu_kind_to_string(cdata->fmu2_kind));
 
     cdata->vl2 = fmi2_import_get_variable_list(cdata->fmu2,1);
 
@@ -205,9 +205,9 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 		jm_log_verbose(cb, fmu_checker_module,"Simulation was not requested");
 		return jm_status_success;
 	}
-    else if(cdata->inputFileName) {
-        jm_log_error(cb, fmu_checker_module,"Input data files are only supported for FMI 1.0 FMUs so far.");
-        return jm_status_error;
+	if((fmi2_init_input_data(&cdata->fmu2_inputData, cb, cdata->fmu2) != jm_status_success)
+        || (fmi2_read_input_file(cdata) != jm_status_success)) {
+		return jm_status_error;
     }
 
 	callBackFunctions.allocateMemory = check_calloc;
