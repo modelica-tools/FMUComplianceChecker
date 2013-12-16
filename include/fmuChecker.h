@@ -17,6 +17,7 @@
 #include <fmilib.h>
 
 #include "fmi1_input_reader.h"
+#include "fmi2_input_reader.h"
 
 /** string constant used for logging. */
 extern const char* fmu_checker_module;
@@ -145,6 +146,8 @@ struct fmu_check_data_t {
 	fmi2_import_t* fmu2;
 	/** Kind of the FMI */
 	fmi2_fmu_kind_enu_t fmu2_kind;
+	/** input data for FMU 2.0 */
+    fmi2_csv_input_t fmu2_inputData;
 	/** model variables */
 	fmi2_import_variable_list_t* vl2;
 } ;
