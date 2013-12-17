@@ -427,7 +427,7 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 }
 
 jm_status_enu_t fmi2_check_external_events(fmi2_real_t tcur, fmi2_real_t tnext,fmi2_event_info_t* eventInfo,fmi2_csv_input_t* indata){
-	int numberOfBools, numberOfInt, numberOfReals,cnt;
+	size_t numberOfBools, numberOfInt, numberOfReals,cnt;
 	fmi2_integer_t* i1;
 	fmi2_integer_t* i2;
 	fmi2_real_t* r1;
