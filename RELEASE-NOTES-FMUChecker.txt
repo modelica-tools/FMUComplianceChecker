@@ -1,0 +1,70 @@
+File: REALEASE-NOTES-FMUChecker.txt
+Release notes for FMI Compliance Checker (FMUChecker) application.
+
+2013-12-17 Version 2.0b1
+- Feature updates:
+ - Added Support for FMIL 2.0b1 resp. FMI 2.0 RC1. Prior versions (beta4) not supported any more.
+  - New event handling for FMU 2.0 in ModelExchange simulation.
+ - Added support for CSV input files for FMUs in 2.0 standard
+
+2013-06-20 Version 2.0a2
+- Feature updates:
+ - Output format modified:
+  - CSV files are now RFC 4180 compatible by default (comma is the 
+  default field separator; CR-LF is used as end of line; variable
+  names are enclosed in double quotes as needed).
+  - -m switch is itroduced to support mangling of variable names 
+  as needed by CSV importers that don't handle quoting.
+  - Only variable names are written out in the header line (no
+  aliasing information is provided).
+  - Numerical values are printed for enum and boolean variables.
+  - -n switch only controls the number of output points and works
+  orthogonal to the -h switch specifying the time step length.
+  - Only variables with causality output are written out by default.
+  -f switch may be used to write out all variables.
+ - Support for input CSV files.
+   -i <file name> - flag is now used to specify file name with input
+   signals for the FMU. Details on the file format are given in
+   the README-FMUChecker.txt.
+ - Version information printed as a part of the help screen.
+- Packaging updates:
+ - FMI Library is distirbuted as a part of checker's source. 
+ - Build script supports automatic cross-checking with FMI Library driven by
+    compliance checker. See information on FMUCHK_FMI_PUBLIC in 
+    BUILD-FMUChecker.txt for details.
+ - Updated the header files for FMI 2.0 (still beta4 compatible).
+
+2012-10-18 Version 2.0a1
+- Added support for FMI 2.0beta4 with the following modifications:
+  - Modified and corrected standard header files as proposed in
+  tickets #86, #87, #88 and #108 at https://trac.fmi-standard.org/
+  Header files are distributed with the FMU checker.
+  - Removed fmiGetPartialDerivatives interface function as decided 
+  during the FMI meeting Sep 07, 2012
+  Note that FMU Checker 2.0a1 supports both FMI 1.0 and 2.0 beta 4 
+  specifications and contains a number of bug fixes as compared to the 1.0.2
+  release. The ‘alpha’ status concerns FMI 2.0 support due to limited testing
+  and beta status of the specification.
+- Added logging of memory callbacks calls
+- The '-z <dir>' switch simplifies debugging for FMU developers
+- Fixed the bugs:
+  - empty and malfored XML files could result in segmentation fault;
+  - instance name pointer can be legally used in fmiInitialize
+
+2012-08-22 Version 1.0.2
+- Fixed the bugs:
+  - parsing of 'Model' element in XML
+  - indexing of enum items
+- Improved CSV file output making sure it can be easily imported into Excel
+- Provided additional program options for convenience
+- Linux version now uses 'RTLD_NOW' mode for loading the FMU binary and
+  reports underfined symbols if there are such.
+
+2012-07-16 Version 1.0.1
+- Added output for the simulation start time
+- Improved simulation output file header. Alias information 
+is now provided as "a=b" or "a=-b" in the first output row.
+- Improved readability for a number of log messages
+
+2012-07-06 Version 1.0
+Initial release submitted to Modelica Association
