@@ -13,13 +13,15 @@ Simulation loop for the FMI 1.0 model exchange FMUs
 
 
 /*Helper event iteration*/
-void do_event_iteration(fmi2_import_t *fmu, fmi2_event_info_t *eventInfo)
+fmi2_status_t do_event_iteration(fmi2_import_t *fmu, fmi2_event_info_t *eventInfo)
 {
+	fmi2_status_t fmistatus = fmi2_status_ok;
 	eventInfo->newDiscreteStatesNeeded = fmi2_true;
 	eventInfo->terminateSimulation     = fmi2_false;
 	while (eventInfo->newDiscreteStatesNeeded && !eventInfo->terminateSimulation) {
-		fmi2_import_new_discrete_states(fmu, eventInfo);
+		fmistatus = fmi2_import_new_discrete_states(fmu, eventInfo);
 	}
+	return fmistatus;
 }
 
 
@@ -96,7 +98,7 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 	if (
 		fmi2_status_ok_or_warning(fmistatus = fmi2_set_inputs(cdata, tstart)) &&
 		fmi2_status_ok_or_warning(fmistatus =  fmi2_import_setup_experiment(fmu, toleranceControlled,relativeTolerance, tstart, fmi2_false, 0.0)) && 
-		fmi2_status_ok_or_warning(fmistatus = fmi2_import_set_time(fmu, tstart)) && /*Is this required?*/
+		fmi2_status_ok_or_warning(fmistatus = fmi2_import_set_time(fmu, tstart)) && 
 		fmi2_status_ok_or_warning(fmistatus = fmi2_import_enter_initialization_mode(fmu)) &&
 		fmi2_status_ok_or_warning(fmi2_import_exit_initialization_mode(fmu))){
 
@@ -211,7 +213,6 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 			jm_log_fatal(cb, fmu_checker_module, "Could not complete integrator step");
 			break;
 		}
-		//--> liefert enterEvent mode oder terminate simulation, wenn beide false bleibt fmu im cont time mode
 
 		/* Check if an event indicator has triggered */
 		if( (n_event_indicators > 0) && 
@@ -244,7 +245,10 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 				break;
 			}
 
-			do_event_iteration(fmu, &eventInfo); /*umschreiben, sollte etwas zurückliefern*/
+			if(!fmi2_status_ok_or_warning(fmistatus = do_event_iteration(fmu, &eventInfo))){
+				jm_log_fatal(cb, fmu_checker_module, "Event iteration failed event mode");
+				break;
+			}
 
 			if( eventInfo.valuesOfContinuousStatesChanged &&
 				!fmi2_status_ok_or_warning(fmistatus = fmi2_import_get_continuous_states(fmu, states, n_states))) {
