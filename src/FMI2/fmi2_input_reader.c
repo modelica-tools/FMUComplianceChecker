@@ -99,10 +99,7 @@ void fmi2_free_input_data(fmi2_csv_input_t* indata) {
 
 void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 	size_t i;
-	//    fmi2_import_variable_t* v;    
-	//	fmi2_value_reference_t temp_vr;
 	fmi2_variability_enu_t variability;
-
 	if( (t == indata->interpTime) ||
 		!jm_vector_get_size(double)(&indata->timeStamps)) {
 			return;
@@ -142,7 +139,7 @@ void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 			fmi2_real_t* v2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex2);
 			indata->interpData[i] = v1[i] * indata->interpLambda + v2[i] * (1.0 - indata->interpLambda);
 		}
-		else{		/*discrete real, value needs to remain*/
+		else{		/*discrete real, no interpolation*/
 			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex1);
 			indata->interpData[i] =  *v1;
 		}
@@ -303,24 +300,6 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 			switch(type) {
 			case fmi2_base_type_real:
 				fmi2_import_var_list_push_back(indata->realInputs,v);
-
-				/*					if (variability<fmi2_variability_enu_discrete){
-				fclose(infile);
-				jm_log_error(&cdata->callbacks, fmu_checker_module, "Real Inputs must be real, integer, enum or boolean. Cannot process variable '%s'", namebuffer);
-				return jm_status_error;
-				}
-				fmi2_import_var_list_push_back(indata->discrealInputs,v);
-
-				fmi2_import_var_list_push_back(indata->realInputVariabilities,variability);
-				/*variante 1 hier zusätzliche Liste mit variabilitäten anlegen!*/
-				/*					if (variability == fmi2_variability_enu_discrete) {
-				fmi2_import_var_list_push_back(indata->discrealInputs,v);
-				}
-				else {
-				// default is contiuous
-				fmi2_import_var_list_push_back(indata->realInputs,v);
-				}
-				*/				
 				break;
 			case fmi2_base_type_int:
 			case fmi2_base_type_enum:
@@ -340,11 +319,8 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 	}
 	if( 
 		!(indata->interpData = (fmi2_real_t*)malloc(sizeof(fmi2_real_t) * fmi2_import_get_variable_list_size(indata->realInputs))) ||
-		//!(indata->interpData = (fmi2_real_t*)malloc(sizeof(fmi2_real_t) * fmi2_import_get_variable_list_size(indata->contrealInputs))) ||
 		(fmi2_import_get_variable_list_size(indata->allInputs) !=
 		fmi2_import_get_variable_list_size(indata->realInputs)+
-		//fmi2_import_get_variable_list_size(indata->contrealInputs)+
-		//fmi2_import_get_variable_list_size(indata->discrealInputs)+
 		fmi2_import_get_variable_list_size(indata->intInputs)+
 		fmi2_import_get_variable_list_size(indata->boolInputs))) {
 			fclose(infile);
@@ -395,7 +371,6 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 			varCnt++) {
 				fmi2_import_variable_t* v = fmi2_import_get_variable(indata->allInputs, varCnt);
 				fmi2_base_type_enu_t type = fmi2_import_get_variable_base_type(v);
-				//int negated = (fmi2_import_get_variable_alias_kind(v) == fmi2_variable_is_negated_alias);
 				int err = 0;
 				if(fgetc(infile) != sep) {
 					jm_log_error(&cdata->callbacks, fmu_checker_module, "Expected separator character, got '%c'[%x] instead", sep,sep);
@@ -406,7 +381,6 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 					{
 						double dbl;
 						err = (fscanf(infile,"%lg",&dbl) != 1);
-						//if(negated) dbl = -dbl;
 						realData[realVarCnt++] = dbl;
 						break;
 					}
@@ -415,7 +389,6 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 					{
 						int intbuf;
 						err = (fscanf(infile,"%d",&intbuf) != 1);
-						//if(negated) intbuf = -intbuf;
 						intData[intVarCnt++] = intbuf;
 						break;
 					}
@@ -423,7 +396,6 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 					{
 						int intbuf;
 						err = (fscanf(infile,"%d",&intbuf) != 1) || (intbuf != 0) && (intbuf != 1);
-						//if(negated) intbuf = intbuf ^ 1;
 						boolData[boolVarCnt++] = intbuf;
 						break;
 					}
@@ -462,38 +434,28 @@ jm_status_enu_t fmi2_check_external_events(fmi2_real_t tcur, fmi2_real_t tnext,f
 	fmi2_real_t* r2;
 	fmi2_import_variable_t* v;
 	if(tnext <= jm_vector_get_item(double)(&indata->timeStamps,0)) {
-		/* not yet in relevant time interval*/
 		return jm_status_success;
 	}
 	else if(tcur >= jm_vector_get_last(double)(&indata->timeStamps)) {
-		/* already out of input data time interval */
 		return jm_status_success;
 	}
 	else {
-		/*finde das passende Zeitintervall*/
 		size_t timeIndex1=indata->eventIndex1;
 		double t1 = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1);
-		while( t1 < tcur) { /*finde index für tcur*/
+		while( t1 < tcur) {
 			timeIndex1++;
 			t1 = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1);
 		}
-		/*entweder gefunden tcurr ist gösser als t1*/
 		if (timeIndex1 == 0 || tnext <	jm_vector_get_item(double)(&indata->timeStamps, timeIndex1)){
-			/*aktueller arbeitsschritt vollständig in datenintervall enthalten - keine änderung!*/
 			return jm_status_success;
 		}
 		else {
-			/*prüfen, ob sich die eingabedaten an tnext geändet haben*/
-			//prüfen boolean, integer und real inputs
-			//prüfen, ob realinputs und continuos und discrete getrennt werden sollen? fragen iakov!
-			/*bools*/
-			fmi2_boolean_t* b1 = (fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,timeIndex1-1); // letzter wert wo t1 < tcurr
-			fmi2_boolean_t* b2 = (fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,timeIndex1); // werte für tnext
-			//werte vergleichen, nicht pointer!
+			/*boolean*/
+			fmi2_boolean_t* b1 = (fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,timeIndex1-1);
+			fmi2_boolean_t* b2 = (fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,timeIndex1);
 			numberOfBools = fmi2_import_get_variable_list_size(indata->boolInputs);
 			for (cnt=0;cnt<numberOfBools;cnt++){
 				if (b1[cnt] != b2[cnt]){
-					/*wert geändert! -> event*/
 					tnext = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1+1);
 					eventInfo->nextEventTimeDefined = fmi2_true;
 					eventInfo->nextEventTime = tnext;
@@ -501,40 +463,32 @@ jm_status_enu_t fmi2_check_external_events(fmi2_real_t tcur, fmi2_real_t tnext,f
 				}
 			}
 			/*integer*/
-			i1 = (fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,timeIndex1-1); // letzter wert wo t1 < tcurr
-			i2 = (fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,timeIndex1); // werte für tnext
-			//werte vergleichen, nicht pointer!
+			i1 = (fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,timeIndex1-1);
+			i2 = (fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,timeIndex1);
 			numberOfInt = fmi2_import_get_variable_list_size(indata->intInputs);
 			for (cnt=0;cnt<numberOfInt;cnt++){
 				if (i1[cnt] != i2[cnt]){
-					/*wert geändert! -> event*/
 					tnext = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1+1);
 					eventInfo->nextEventTimeDefined = fmi2_true;
 					eventInfo->nextEventTime = tnext;
 					return jm_status_success;
 				}
 			}
-
-			/*Reals:*/
-			r1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,timeIndex1-1-1);
-			r2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,timeIndex1-1);
-			//werte vergleichen, nicht pointer!
+			/*discrete real*/
+			r1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,timeIndex1-1);
+			r2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,timeIndex1);
 			numberOfReals = fmi2_import_get_variable_list_size(indata->realInputs);
 			v = fmi2_import_get_variable(indata->realInputs, cnt);
 			for (cnt=0;cnt<numberOfReals;cnt++){
 				fmi2_import_variable_t* v = fmi2_import_get_variable(indata->realInputs, cnt);
-				/*just check for changes in discrete variables*/
-				//if ((r1[cnt] != r2[cnt]) && (fmi2_import_get_causality(v) == fmi2_variability_enu_discrete)){
-				if (r1[cnt] != r2[cnt]){
-					/*wert geändert! -> event*/
+				if ((r1[cnt] != r2[cnt]) && (fmi2_import_get_causality(v) == fmi2_variability_enu_discrete)){
 					tnext = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1+1);
 					eventInfo->nextEventTimeDefined = fmi2_true;
 					eventInfo->nextEventTime = tnext;
 					return jm_status_success;
 				}
 			}
-//			timeIndex1=indata->eventIndex1=timeIndex1-1;
-			/*no event triggers found!*/
+			timeIndex1=indata->eventIndex1=timeIndex1-1;
 			return jm_status_success;
 		}
 	}
