@@ -6,7 +6,7 @@ Licence information is provided in: LICENCE-FMUChecker.txt
 Acknowledgements for used software: ACKNOWLEDGEMENTS-FMUChecker.txt
 
 The FMI Compliance Checker is intended for
-validation of FMU 1.0 and 2.0beta4 compliance to the standard specification
+validation of FMU 1.0 and 2.0RC1 compliance to the standard specification
 as published at <http://www.fmi-standard.org>
 
 The basic features include:
@@ -31,8 +31,7 @@ The basic features include:
 	the header containt variable names, first column is time, alternative 
     field separator may be specified as an option).
     - can supply numerical input data to the simulation from an CSV file. 
-    String inputs are currently not supported. This feature is currently
-    only available for FMI 1.0 FMUs. The input file is expected to be 
+    String inputs are currently not supported. The input file is expected to be 
     RFC4180 compatible with following modifications:
       - The file must be in UTF-8 encoding;
       - First line must be a header listing the variable names;
