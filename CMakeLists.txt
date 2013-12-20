@@ -193,12 +193,14 @@ set(SOURCE
 	${FMUCHK_HOME}/src/FMI1/fmi1_me_sim.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_cs_sim.c
     
+	${FMUCHK_HOME}/src/FMI2/fmi2_input_reader.c
 	${FMUCHK_HOME}/src/FMI2/fmi2_check.c
 	${FMUCHK_HOME}/src/FMI2/fmi2_me_sim.c
 	${FMUCHK_HOME}/src/FMI2/fmi2_cs_sim.c
 	)
 set(HEADERS 
     ${FMUCHK_HOME}/include/fmi1_input_reader.h
+	${FMUCHK_HOME}/include/fmi2_input_reader.h
 	${FMUCHK_HOME}/include/fmuChecker.h)
 
 include_directories(
