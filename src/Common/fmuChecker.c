@@ -598,7 +598,7 @@ int main(int argc, char *argv[])
 		break;
 	default:
 		clear_fmu_check_data(&cdata, 1);
-		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 and 2.0beta are supported so far");
+		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 and 2.0RC1 are supported so far");
 		do_exit(1);
 	}
 
@@ -641,7 +641,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, 
-			"\tFatal error occured during processing");
+			"\tFatal error occurred during processing");
 		if(cdata.log_file && (cdata.log_file != stderr))
 			fclose(cdata.log_file);
 		do_exit(1);
