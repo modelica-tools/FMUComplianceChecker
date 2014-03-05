@@ -487,11 +487,16 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 
 void clear_fmu_check_data(fmu_check_data_t* cdata, int close_log) {
 	if(cdata->fmu1) {
-        fmi1_free_input_data(&cdata->fmu1_inputData);
+		if (cdata->do_simulate_flg) {
+			fmi1_free_input_data(&cdata->fmu1_inputData);
+		}
 		fmi1_import_free(cdata->fmu1);
 		cdata->fmu1 = 0;        
 	}
 	if(cdata->fmu2) {
+		if (cdata->do_simulate_flg) {
+			fmi2_free_input_data(&cdata->fmu2_inputData);
+		}
 		fmi2_import_free(cdata->fmu2);
 		cdata->fmu2 = 0;
 	}
