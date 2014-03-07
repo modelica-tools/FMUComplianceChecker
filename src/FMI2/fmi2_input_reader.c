@@ -373,7 +373,7 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 				fmi2_base_type_enu_t type = fmi2_import_get_variable_base_type(v);
 				int err = 0;
 				if(fgetc(infile) != sep) {
-					jm_log_error(&cdata->callbacks, fmu_checker_module, "Expected separator character, got '%c'[%x] instead", sep,sep);
+					jm_log_error(&cdata->callbacks, fmu_checker_module, "Expected separator character, got '%c'[%x] instead. Parsing line %i", sep,sep,lineCnt);
 					break;
 				}
 				switch(type) {
