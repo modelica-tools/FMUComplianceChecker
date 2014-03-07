@@ -365,7 +365,7 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
             int negated = (fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias);
             int err = 0;
             if(fgetc(infile) != sep) {
-                jm_log_error(&cdata->callbacks, fmu_checker_module, "Expected separator character, got '%c'[%x] instead", sep,sep);
+                jm_log_error(&cdata->callbacks, fmu_checker_module, "Expected separator character, got '%c'[%x] instead. Parsing line %i", sep,sep,lineCnt);
                 break;
             }
             switch(type) {
