@@ -82,10 +82,18 @@ void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_le
 	}
 }
 
+void print_version() {
+    printf("FMI compliance checker " FMUCHK_VERSION " [FMILibrary:"FMIL_VERSION"] build date: "__DATE__
+#ifdef FMILIB_ENABLE_LOG_LEVEL_DEBUG
+        " "__TIME__
+#endif
+        "\n");
+}
+ 
 
 void print_usage( ) {
-	printf("FMI compliance checker version " FMUCHK_VERSION "[FMILibrary:"FMIL_VERSION"]\n"
-		"Usage: fmuCheck." FMI_PLATFORM " [options] <model.fmu>\n\n"
+    print_version();
+	printf(	"Usage: fmuCheck." FMI_PLATFORM " [options] <model.fmu>\n\n"
 		"Options:\n\n"
 		"-c <separator>\t Separator character to be used in CSV output. Default is ','.\n\n"
 		"-e <filename>\t Error log file name. Default is to use standard error.\n\n"
@@ -97,7 +105,8 @@ void print_usage( ) {
 		"-n <num_steps>\t Maximum number of output points. Zero means output\n\t\t in every step. Default is " DEFAULT_NUM_STEPS_STR ".\n\n"
 		"-o <filename>\t Simulation result output CSV file name. Default is to use standard output.\n\n"
 		"-s <stopTime>\t Simulation stop time, default is to use information from\n\t\t'DefaultExperiment' as specified in the model description XML.\n\n"
-		"-t <tmp-dir>\t Temporary dir to use for unpacking the FMU.\n\t\t Default is to use system-wide directory, e.g., C:\\Temp.\n\n"
+		"-t <tmp-dir>\t Temporary dir to use for unpacking the FMU.\n\t\t Default is to use system-wide directory, e.g., C:\\Temp or /tmp.\n\n"
+        "-v\t\t Print the checker version information"
 		"-x\t\t Check XML and stop, default is to load the DLL and simulate\n\t\t after this.\n\n"
         "-z <unzip-dir>\t Do not create and remove temp directory but use the specified one\n"
 					"\t\t for unpacking the FMU. The option takes precendence over -t.\n\n"
@@ -120,6 +129,10 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		print_usage();
 		do_exit(0);
 	}
+    if((argc == 2) && strcmp(argv[1], "-v") == 0) {
+        print_version();
+        do_exit(0);
+    }
 
 	i=1;
 	while(i < (size_t)(argc - 1)) {
@@ -209,7 +222,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			i++;
 			cdata->temp_dir = argv[i];
 			break;
-
+                  }
 		case 'i': {   /*     "-i <infile>\t Name of the CSV file name with input data.\n\n" */
             i++;
             cdata->inputFileName = argv[i];
@@ -218,8 +231,11 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
         case 'm':{ /* "Print enums and booleans as integers (default is to print item names, true and false)." */            
             cdata->do_mangle_var_names = 1;
             break;
-        }            
-				  }
+        }
+        case 'v': {
+            print_version();
+                break;
+                  }
         case 'z': { /* "-z <unzip-dir>\t Do not create temp directory but use the specified one\n\t\t for unpacking the FMU The option takes precendence over -t." */
 			char cwd[10000];
             i++;

@@ -363,7 +363,8 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 			}
 		case fmi1_base_type_str:
 			{
-				fmi1_string_t val;
+                char empty = 0;
+                fmi1_string_t val = "test ##";
 				
 				fmistatus = fmi1_import_get_string(fmu,&vr, 1, &val);
 				checked_fprintf(cdata, fmt_sep);

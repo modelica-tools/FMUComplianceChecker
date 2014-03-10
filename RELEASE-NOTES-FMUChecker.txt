@@ -1,6 +1,12 @@
 File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
 
+2014-03-10 Version 2.0b2
+- Bug fix release:
+  - Corrected reduced output for the 2.0RC1 FMUs
+  - Handling of co-simulation FMUs with fixed time step
+  - Improved error handling and better error messages.
+
 2013-12-17 Version 2.0b1
 - Feature updates:
  - Added Support for FMIL 2.0b1 resp. FMI 2.0 RC1. Prior versions (beta4) not supported any more.
