@@ -260,6 +260,11 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 					jm_log_fatal(cb, fmu_checker_module, "Could not get nominals of continuous states");
 					break;
 			}
+			if( (n_event_indicators > 0) && 
+				!fmi2_status_ok_or_warning(fmistatus = fmi2_import_get_event_indicators(fmu, event_indicators_prev, n_event_indicators))) {
+				jm_log_fatal(cb, fmu_checker_module, "Could not get event indicators");
+				break;
+			}
 			if( !fmi2_status_ok_or_warning(fmistatus = fmi2_import_enter_continuous_time_mode(fmu))){
 				jm_log_fatal(cb, fmu_checker_module, "Could not enter continuous time mode");
 				break;

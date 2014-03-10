@@ -103,7 +103,7 @@ int annotation_end_handle(void *context, const char *elm) {
 }
 
 int fmi2_filter_outputs(fmi2_import_variable_t*vl, void * data) {
-    return (fmi2_import_get_causality(vl) == fmi1_causality_enu_output);
+    return (fmi2_import_get_causality(vl) == fmi2_causality_enu_output);
 }
 
 

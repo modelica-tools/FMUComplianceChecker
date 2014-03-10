@@ -29,6 +29,8 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 	fmi2_real_t hstep;
 	fmi2_real_t tend = fmi2_import_get_default_experiment_stop(fmu);
 	fmi2_boolean_t StopTimeDefined = fmi2_true;
+	fmi2_boolean_t canHandleVarStepSize = fmi2_import_get_capability(fmu,fmi2_cs_canHandleVariableCommunicationStepSize);
+		
 
     prepare_time_step_info(cdata, &tend, &hstep);
 
@@ -66,8 +68,15 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 		fmi2_boolean_t newStep = fmi2_true;
 		fmi2_real_t tnext = tcur + hstep;
 		if(tnext > tend - 1e-3*hstep) { /* last step should be on tend */
-			hstep = tend - tcur;
-			tnext = tend;
+			if (canHandleVarStepSize) {
+				/*adjust final  step to match tend*/
+				hstep = tend - tcur;
+				tnext = tend;
+			}
+			else{
+				/*keep stepsize, exceed tend*/
+				jm_log_warning(cb,fmu_checker_module, "FMU does not support variable communication stepsize. Stepsize may not be altered to reach stopTime exactly.");
+			}
 		}
 
 		jm_log_verbose(cb, fmu_checker_module, "Simulation step from time: %g until: %g", tcur, tnext);

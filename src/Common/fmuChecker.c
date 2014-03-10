@@ -487,11 +487,16 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 
 void clear_fmu_check_data(fmu_check_data_t* cdata, int close_log) {
 	if(cdata->fmu1) {
-        fmi1_free_input_data(&cdata->fmu1_inputData);
+		if (cdata->do_simulate_flg) {
+			fmi1_free_input_data(&cdata->fmu1_inputData);
+		}
 		fmi1_import_free(cdata->fmu1);
 		cdata->fmu1 = 0;        
 	}
 	if(cdata->fmu2) {
+		if (cdata->do_simulate_flg) {
+			fmi2_free_input_data(&cdata->fmu2_inputData);
+		}
 		fmi2_import_free(cdata->fmu2);
 		cdata->fmu2 = 0;
 	}
@@ -598,7 +603,7 @@ int main(int argc, char *argv[])
 		break;
 	default:
 		clear_fmu_check_data(&cdata, 1);
-		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 and 2.0beta are supported so far");
+		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 and 2.0RC1 are supported so far");
 		do_exit(1);
 	}
 
@@ -641,7 +646,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, 
-			"\tFatal error occured during processing");
+			"\tFatal error occurred during processing");
 		if(cdata.log_file && (cdata.log_file != stderr))
 			fclose(cdata.log_file);
 		do_exit(1);
