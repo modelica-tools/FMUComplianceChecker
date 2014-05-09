@@ -1,6 +1,13 @@
 File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
 
+2014-05-09 Version 2.0b3
+- Feature updates:
+ - Added Support for FMIL 2.0b3 resp. FMI 2.0 RC2. Prior versions (RC1 and below) not supported any more.
+ - Simultaneous identifiers for ModelExchange and CoSimulation in 2.0 now legal and will both be verified.
+ - updated model structure output for 2.0 due to new variabilities.
+
+ 
 2014-03-10 Version 2.0b2
 - Bug fix release:
   - Corrected reduced output for the 2.0RC1 FMUs
