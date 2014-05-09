@@ -174,7 +174,8 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 			"%u inputs\n"
 			"%u outputs\n"
 			"%u local variables\n"
-			"%u parameters\n"
+			"%u independent variables\n"
+			"%u calculated parameters\n"
 			"%u real variables\n"
 			"%u integer variables\n"
 			"%u enumeration variables\n"
@@ -187,7 +188,8 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 			counts.num_inputs,
 			counts.num_outputs,
 			counts.num_local,
-			counts.num_parameters,
+			counts.num_independent,
+			counts.num_calculated_parameters,
 			counts.num_real_vars,
 			counts.num_integer_vars,
 			counts.num_enum_vars,
