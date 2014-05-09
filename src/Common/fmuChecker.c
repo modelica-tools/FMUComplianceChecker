@@ -619,7 +619,7 @@ int main(int argc, char *argv[])
 		break;
 	default:
 		clear_fmu_check_data(&cdata, 1);
-		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 and 2.0RC1 are supported so far");
+		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 and 2.0 RC2 are supported so far");
 		do_exit(1);
 	}
 
