@@ -6,7 +6,7 @@ Licence information is provided in: LICENCE-FMUChecker.txt
 Acknowledgements for used software: ACKNOWLEDGEMENTS-FMUChecker.txt
 
 The FMI Compliance Checker is intended for
-validation of FMU 1.0 and 2.0RC1 compliance to the standard specification
+validation of FMU 1.0 and 2.0RC2 compliance to the standard specification
 as published at <http://www.fmi-standard.org>
 
 The basic features include:
