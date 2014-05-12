@@ -124,6 +124,18 @@ struct fmu_check_data_t {
 	/** Should simulation be done (or only XML checking) */
 	int do_simulate_flg;
 
+	/** Should we simulate ME if available? */
+    int do_test_me;
+
+	/** Should we simulate CS if available? */
+    int do_test_cs;
+
+	/** Should we require ME to be available? */
+    int require_me;
+
+	/** Should we require CS to be available? */
+    int require_cs;
+
     /** should variable names be mangled to avoid quoting (-m switch) */
     int do_mangle_var_names;
 

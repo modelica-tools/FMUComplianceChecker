@@ -276,6 +276,8 @@ if(TEST_COMMAND_LINE_PARSING)
 	set_tests_properties(check_command_line_parsing_6 PROPERTIES WILL_FAIL TRUE)
 	add_test(check_command_line_parsing_7 ${fmuCheck} -l 6 -n 10 -s 1 -c -1 a.fmu  )
 	set_tests_properties(check_command_line_parsing_7 PROPERTIES WILL_FAIL TRUE)
+	add_test(check_command_line_parsing_8 ${fmuCheck} -k no_such_kind a.fmu  )
+	set_tests_properties(check_command_line_parsing_8 PROPERTIES WILL_FAIL TRUE)
 	add_test(check_bad_fmu_file ${fmuCheck} -l 6 no_such_file.fmu  )
 	set_tests_properties(check_bad_fmu_file PROPERTIES WILL_FAIL TRUE)
 endif()
@@ -286,6 +288,61 @@ add_test(
 
 set_tests_properties ( 
 		check_with_default_params 
+		PROPERTIES DEPENDS Build_before_test)
+
+add_test(
+	NAME check_require_me
+	COMMAND ${fmuCheck} -k me  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_me.fmu)
+set_tests_properties ( 
+		check_require_me
+		PROPERTIES DEPENDS Build_before_test)
+
+add_test(
+	NAME check_require_me_fail
+	COMMAND ${fmuCheck} -k me  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_cs.fmu)
+set_tests_properties ( 
+		check_require_me_fail
+		PROPERTIES DEPENDS Build_before_test
+#        WILL_FAIL TRUE # non-fatal error ==> zero exit code currently
+)
+
+add_test(
+	NAME check_require_cs
+	COMMAND ${fmuCheck} -k cs  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_cs.fmu)
+set_tests_properties ( 
+		check_require_cs
+		PROPERTIES DEPENDS Build_before_test)
+
+add_test(
+	NAME check_require_cs_fail
+	COMMAND ${fmuCheck} -k cs  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_me.fmu)
+set_tests_properties ( 
+		check_require_cs_fail
+		PROPERTIES DEPENDS Build_before_test
+#        WILL_FAIL TRUE # non-fatal error ==> zero exit code currently
+)
+
+add_test(
+	NAME check_require_me_cs_fail
+	COMMAND ${fmuCheck} -k cs -k me  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_me.fmu)
+set_tests_properties ( 
+		check_require_me_cs_fail
+		PROPERTIES DEPENDS Build_before_test
+#        WILL_FAIL TRUE # non-fatal error ==> zero exit code currently
+)
+
+add_test(
+	NAME check_xml_on_me
+	COMMAND ${fmuCheck} -k xml  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_me.fmu)
+set_tests_properties ( 
+		check_xml_on_me
+		PROPERTIES DEPENDS Build_before_test)
+
+add_test(
+	NAME check_xml_on_cs
+	COMMAND ${fmuCheck} -k xml  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_cs.fmu)
+set_tests_properties ( 
+		check_xml_on_cs
 		PROPERTIES DEPENDS Build_before_test)
 
 foreach(fmu ${BAD_FMUS})

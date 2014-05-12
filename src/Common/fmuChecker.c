@@ -106,8 +106,13 @@ void print_usage( ) {
 		"-o <filename>\t Simulation result output CSV file name. Default is to use standard output.\n\n"
 		"-s <stopTime>\t Simulation stop time, default is to use information from\n\t\t'DefaultExperiment' as specified in the model description XML.\n\n"
 		"-t <tmp-dir>\t Temporary dir to use for unpacking the FMU.\n\t\t Default is to use system-wide directory, e.g., C:\\Temp or /tmp.\n\n"
-        "-v\t\t Print the checker version information"
-		"-x\t\t Check XML and stop, default is to load the DLL and simulate\n\t\t after this.\n\n"
+        "-v\t\t Print the checker version information.\n\n"
+        "-k xml\t\t Check XML only.\n"
+        "-k me\t\t Check XML and ME simulation.\n"
+        "-k cs\t\t Check XML and CS simulation.\n"
+        "   \t\t Multiple -k options add up.\n"
+        "   \t\t No -k option: test XML, simulate ME and CS if available.\n\n"
+		"-x\t\t Check XML only. Same as -k xml.\n\n"
         "-z <unzip-dir>\t Do not create and remove temp directory but use the specified one\n"
 					"\t\t for unpacking the FMU. The option takes precendence over -t.\n\n"
 		"Command line examples:\n\n"
@@ -124,6 +129,7 @@ void print_usage( ) {
 }
 
 void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
+    int do_test_everything=1;
 	size_t i;
  	if(argc < 2) {
 		print_usage();
@@ -143,9 +149,32 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		}
 		option++;
 		switch(*option) {
-		case 'x':
-			cdata->do_simulate_flg = 0;
+		case 'x': /* same as -k xml */
+            do_test_everything = 0;
 			break;
+        case 'k':
+            do_test_everything = 0;
+
+			i++;
+			option = argv[i];
+            
+            {
+                /* convert option to lowecase */
+                char *ch = (char *)option;
+                while (*ch != 0) {
+                    *ch = tolower(*ch);
+                    ch++;
+                }
+            }
+            
+            if      (strcmp(option, "me")  == 0) cdata->require_me = 1;
+            else if (strcmp(option, "cs")  == 0) cdata->require_cs = 1;
+            else if (strcmp(option, "xml") == 0) {}
+            else {
+				jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Unsupported option '-k %s'.\nRun without arguments to see help.", option);
+				do_exit(1);
+            }                
+            break;
 		case 's': {
 			/* <stopTime>\t Simulation stop time, default is to use information from 'DefaultExperiment'\n" */
 			double endTime;
@@ -261,6 +290,10 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		do_exit(1);
 	}
 	cdata->FMUPath = argv[i];
+
+    cdata->do_test_me = cdata->require_me || do_test_everything;
+    cdata->do_test_cs = cdata->require_cs || do_test_everything;
+    cdata->do_simulate_flg = cdata->do_test_me || cdata->do_test_cs;
 
 	if(cdata->log_file_name) {
 		cdata->log_file = fopen(cdata->log_file_name, "w");
@@ -485,6 +518,10 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->log_file = stderr;
     cdata->inputFileName = 0;
 	cdata->do_simulate_flg = 1;
+    cdata->do_test_me = 1;
+    cdata->do_test_cs = 1;
+    cdata->require_me = 0;
+    cdata->require_cs = 0;
     cdata->do_mangle_var_names = 0;
     cdata->do_output_all_vars = 0;
 

@@ -80,6 +80,17 @@ Options:
 -t <tmp-dir>     Temporary dir to use for unpacking the FMU.
                  Default is to use system-wide directory, e.g., C:\Temp.
 
+-v               Print the checker version information.
+
+-k xml           Check XML only.
+-k me            Check XML and ME simulation.
+-k cs            Check XML and CS simulation.
+                 Multiple -k options add up.
+                 No -k option: test XML, simulate ME and CS if available.
+
+-x               Check XML only. Same as -k xml.
+
+
 -x               Check XML and stop, default is to load the DLL and simulate
                  after this.
 
@@ -90,7 +101,7 @@ Command line examples:
 
 fmuCheck.win32 model.fmu 
         The checker on win32 platform will process "model.fmu"  with default 
-		options.
+        options.
                 
 fmuCheck.win64 -e log.txt -o result.csv -c , -s 2 -h 1e-3 -l 5 -t . model.fmu 
         The checker on win64 platform will process "model.fmu". The log 

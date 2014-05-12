@@ -218,7 +218,11 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 	callBackFunctions.stepFinished = 0;
 	callBackFunctions.componentEnvironment = cdata;
 
-	if( (cdata->fmu2_kind == fmi2_fmu_kind_me) || (cdata->fmu2_kind == fmi2_fmu_kind_me_and_cs)) {
+    if ((cdata->fmu2_kind & fmi2_fmu_kind_me) == 0 && cdata->require_me) {
+        jm_log_error(cb, fmu_checker_module, "Testing of ME requested but not an ME FMU!");
+    }
+	if( ((cdata->fmu2_kind == fmi2_fmu_kind_me) || (cdata->fmu2_kind == fmi2_fmu_kind_me_and_cs))
+      && (cdata->do_test_me)) {
 		cdata->modelIdentifierME = fmi2_import_get_model_identifier_ME(cdata->fmu2);
 	    jm_log_info(cb, fmu_checker_module,"Model identifier for ModelExchange: %s", cdata->modelIdentifierME);
 
@@ -245,7 +249,11 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 			status = fmi2_me_simulate(cdata);
 		}
 	}
-	if( (cdata->fmu2_kind == fmi2_fmu_kind_cs) || (cdata->fmu2_kind == fmi2_fmu_kind_me_and_cs)) {
+    if ((cdata->fmu2_kind & fmi2_fmu_kind_cs) == 0 && cdata->require_cs) {
+        jm_log_error(cb, fmu_checker_module, "Testing of CS requested but not a CS FMU!");
+    }
+	if( ((cdata->fmu2_kind == fmi2_fmu_kind_cs) || (cdata->fmu2_kind == fmi2_fmu_kind_me_and_cs))
+      && cdata->do_test_cs) {
 		jm_status_enu_t savedStatus = status;
 		cdata->modelIdentifierCS = fmi2_import_get_model_identifier_CS(cdata->fmu2);
 	    jm_log_info(cb, fmu_checker_module,"Model identifier for CoSimulation: %s", cdata->modelIdentifierCS);
