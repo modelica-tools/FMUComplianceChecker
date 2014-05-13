@@ -274,7 +274,7 @@ jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 		}
 	}
 
-	if(checked_fprintf(cdata, "\n") != jm_status_success) {
+	if(checked_fprintf(cdata, "\r\n") != jm_status_success) {
 		return jm_status_error;
 	}
 	return jm_status_success;
@@ -407,7 +407,7 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 			return jm_status_error;
 		}
 	}
-	if(checked_fprintf(cdata, "\n")!= jm_status_success) {
+	if(checked_fprintf(cdata, "\r\n")!= jm_status_success) {
 		return jm_status_error;
 	}
 	return jm_status_success;

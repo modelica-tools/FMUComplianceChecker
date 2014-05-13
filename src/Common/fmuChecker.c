@@ -354,7 +354,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		do_exit(1);
 	}
 	if(cdata->output_file_name) {
-		cdata->out_file = fopen(cdata->output_file_name, "w");
+		cdata->out_file = fopen(cdata->output_file_name, "wb");
 		if(!cdata->out_file) {
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not open %s for writing", cdata->output_file_name);
 			clear_fmu_check_data(cdata, 1);
