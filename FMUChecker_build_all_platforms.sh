@@ -1,5 +1,5 @@
 #!/bin/bash -x
-FMUCHECKERVERSION=FMUChecker-2.0a2
+FMUCHECKERVERSION=FMUChecker-2.0b3
 # The script is used to create FMU checker executables for 4 different platforms
 # It is intended to be run from MSYS shell on Windows on a computer with
 #  the following installed:
@@ -27,7 +27,8 @@ REMOTESRCDIR=/home/iakov/FMUCheckerBuild
 REMOTEBUILDDIR=/tmp/FMUCheckerBuild
 
 # Almost no error checking in the script. So, please, read the output!
-FMUCHK_REPO="https://svn.modelon.se/P533-FMIComplianceChecker/tags/2.0a2"
+FMUCHK_REPO="https://svn.modelon.se/P533-FMIComplianceChecker/tags/2.0b3"
+# FMUCHK_REPO="https://svn.modelon.se/P533-FMIComplianceChecker/branches/2.0.x"
 # the build dir will be removed with rm -rf if RMBUILDDIR="YES"
 RMBUILDDIR="NO"
 ##########################################################################################
@@ -73,31 +74,31 @@ popd
 ssh $LINUXHOST "mkdir $REMOTESRCDIR >& /dev/null"
 ssh $LINUXHOST "mkdir $REMOTESRCDIR/FMUCHK >& /dev/null && svn co $FMUCHK_REPO $REMOTESRCDIR/FMUCHK" || \
 ssh $LINUXHOST "cd $REMOTESRCDIR/FMUCHK && svn switch $FMUCHK_REPO && svn up" ||exit 1
-ssh iakov@192.168.56.101 "rm -rf $REMOTEBUILDDIR/install >& /dev/null"
+ssh $LINUXHOST "rm -rf $REMOTEBUILDDIR/install >& /dev/null"
 if [ "$RMBUILDDIR" == "YES" ]; then 
 	ssh $LINUXHOST "rm -rf $REMOTEBUILDDIR >& /dev/null"	
 fi
 ssh $LINUXHOST "(mkdir $REMOTEBUILDDIR &&	mkdir $REMOTEBUILDDIR/build32 && mkdir $REMOTEBUILDDIR/build64)  >& /dev/null"
 # build linux32
-ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/build32; cmake -DFMUCHK_FMI_PLATFORM=linux32 -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_EXE_LINKER_FLAGS=-m32 -DCMAKE_SHARED_LINKER_FLAGS=-m32 $REMOTESRCDIR/FMUCHK"
-ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/build32; cmake --build . --target install"  || exit 1
-ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/build32; ctest" || exit 1
+ssh $LINUXHOST "cd $REMOTEBUILDDIR/build32; cmake -DFMUCHK_FMI_PLATFORM=linux32 -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_EXE_LINKER_FLAGS=-m32 -DCMAKE_SHARED_LINKER_FLAGS=-m32 $REMOTESRCDIR/FMUCHK"
+ssh $LINUXHOST "cd $REMOTEBUILDDIR/build32; cmake --build . --target install"  || exit 1
+ssh $LINUXHOST "cd $REMOTEBUILDDIR/build32; ctest" || exit 1
 #build linux64
-ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/build64; cmake $REMOTESRCDIR/FMUCHK"
-ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/build64; cmake --build . --target install"  || exit 1
-ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/build64; ctest" || exit 1
+ssh $LINUXHOST "cd $REMOTEBUILDDIR/build64; cmake $REMOTESRCDIR/FMUCHK"
+ssh $LINUXHOST "cd $REMOTEBUILDDIR/build64; cmake --build . --target install"  || exit 1
+ssh $LINUXHOST "cd $REMOTEBUILDDIR/build64; ctest" || exit 1
 
-scp -r $SRCDIR/FMUCHK/FMIL/ThirdParty/FMI/default $SRCDIR/FMUCHK/*-FMUChecker.txt iakov@192.168.56.101:$REMOTEBUILDDIR/install|| exit 1
-ssh iakov@192.168.56.101 "mv $REMOTEBUILDDIR/install/default $REMOTEBUILDDIR/install/include" || exit 1
+scp -r $SRCDIR/FMUCHK/FMIL/ThirdParty/FMI/default $SRCDIR/FMUCHK/*-FMUChecker.txt $LINUXHOST:$REMOTEBUILDDIR/install|| exit 1
+ssh $LINUXHOST "mv $REMOTEBUILDDIR/install/default $REMOTEBUILDDIR/install/include" || exit 1
 
 for platform in "linux32" "linux64" ; do 
-	ssh iakov@192.168.56.101 "mkdir $REMOTEBUILDDIR/install/$FMUCHECKERVERSION-$platform  >& /dev/null"
-	ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/install; cp -al include *-FMUChecker.txt fmuCheck.$platform $FMUCHECKERVERSION-$platform" || exit 1
-	ssh iakov@192.168.56.101 "cd $REMOTEBUILDDIR/install; zip -r $FMUCHECKERVERSION-$platform.zip $FMUCHECKERVERSION-$platform"|| exit 1
+	ssh $LINUXHOST "mkdir $REMOTEBUILDDIR/install/$FMUCHECKERVERSION-$platform  >& /dev/null"
+	ssh $LINUXHOST "cd $REMOTEBUILDDIR/install; cp -al include *-FMUChecker.txt fmuCheck.$platform $FMUCHECKERVERSION-$platform" || exit 1
+	ssh $LINUXHOST "cd $REMOTEBUILDDIR/install; zip -r $FMUCHECKERVERSION-$platform.zip $FMUCHECKERVERSION-$platform"|| exit 1
 done
 
 # copy the results back
-scp iakov@192.168.56.101:$REMOTEBUILDDIR/install/\*.zip $BUILDDIR/install
+scp $LINUXHOST:$REMOTEBUILDDIR/install/\*.zip $BUILDDIR/install
 ls $BUILDDIR/install
 
 # now packaging
