@@ -83,7 +83,7 @@ void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_le
 }
 
 void print_version() {
-    printf("FMI compliance checker " FMUCHK_VERSION " [FMILibrary:"FMIL_VERSION"] build date: "__DATE__
+    printf("FMI compliance checker " FMUCHK_VERSION " [FMILibrary: "FMIL_VERSION"] build date: "__DATE__
 #ifdef FMILIB_ENABLE_LOG_LEVEL_DEBUG
         " "__TIME__
 #endif
@@ -637,6 +637,13 @@ int main(int argc, char *argv[])
 #ifdef FMILIB_GENERATE_BUILD_STAMP
 	jm_log_debug(callbacks,fmu_checker_module,"FMIL build stamp:\n%s\n", fmilib_get_build_stamp());
 #endif
+	
+#ifdef FMILIB_ENABLE_LOG_LEVEL_DEBUG
+	jm_log_info(callbacks,fmu_checker_module,"FMI compliance checker " FMUCHK_VERSION " [FMILibrary: "FMIL_VERSION"] build date: "__DATE__ " "__TIME__);
+#else
+	jm_log_info(callbacks,fmu_checker_module,"FMI compliance checker " FMUCHK_VERSION " [FMILibrary: "FMIL_VERSION"] build date: "__DATE__ );
+#endif
+
 	jm_log_info(callbacks,fmu_checker_module,"Will process FMU %s",cdata.FMUPath);
 
 	cdata.context = fmi_import_allocate_context(callbacks);
