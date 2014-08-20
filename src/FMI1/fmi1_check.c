@@ -183,12 +183,13 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 		return jm_status_success;
 	}
 
-    if((fmi1_init_input_data(&cdata->fmu1_inputData, cb, cdata->fmu1) != jm_status_success)
+	if((fmi1_init_input_data(&cdata->fmu1_inputData, cb, cdata->fmu1) != jm_status_success)
         || (fmi1_read_input_file(cdata) != jm_status_success)) {
+		jm_log_error(cb,fmu_checker_module,"Could not initialize input data.");
 		return jm_status_error;
     }
 
-	callBackFunctions.allocateMemory = check_calloc;
+    callBackFunctions.allocateMemory = check_calloc;
 	callBackFunctions.freeMemory = check_free;
 	callBackFunctions.logger = fmi1_checker_logger;
 	callBackFunctions.stepFinished = 0;
@@ -215,10 +216,26 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 			jm_log_error(cb,fmu_checker_module,"Platform type returned from FMU %s does not match the checker  %s",platform, fmi1_get_platform() );
 	}
 
-	if(cdata->fmu1_kind == fmi1_fmu_kind_enu_me)
-		return fmi1_me_simulate(cdata);
-	else 
-		return fmi1_cs_simulate(cdata);
+	
+	if (cdata->require_me) {
+		if(cdata->fmu1_kind == fmi1_fmu_kind_enu_me)
+			return fmi1_me_simulate(cdata);
+		else 
+			jm_log_error(cb, fmu_checker_module, "Testing of ME requested but not an ME FMU!");
+	}
+
+	if (cdata->require_cs) {
+		if ((cdata->fmu1_kind == fmi1_fmu_kind_enu_cs_standalone ) || (cdata->fmu1_kind == fmi1_fmu_kind_enu_cs_tool )) 
+			return fmi1_cs_simulate(cdata);
+		else
+	        jm_log_error(cb, fmu_checker_module, "Testing of CS requested but not an CS FMU!");
+    }
+
+	if( (cdata->fmu1_kind == fmi1_fmu_kind_enu_unknown)){
+		jm_log_error(cb, fmu_checker_module, "Could not determine FMU kind. No simulation.");
+		return jm_status_error;
+	}
+	
 }
 
 
