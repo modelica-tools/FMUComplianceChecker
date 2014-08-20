@@ -426,6 +426,7 @@ if(FMUCHK_FMI_PUBLIC)
             string(REPLACE "${FMUCHK_FMI_PUBLIC_NORMALIZED}/Test_FMUs/" "" testname "${FMUFULLPATH}")
             string(REPLACE "/" "_" testname "check_${testname}")
             string(REPLACE ":" "_" testname ${testname})
+            string(REPLACE " " "_" testname ${testname})
             message(STATUS "Adding test named ${testname}")
 #           message(STATUS "Command: ${fmuCheck} -t ${TMPDIR} -f -o result.csv -e log.txt ${STEPFLAG} ${STOPTIMEFLAG} ${FMUFULLPATH}")
             file(WRITE ${CCRDIR}/README.txt
@@ -444,7 +445,7 @@ Simulation results: 'result.csv'"
 #     cmake -DTESTFMUSDIR=<path to Test_FMUs dir> -DTMPDIR=<temp dir> -DCHECKER=<checker application> -P run_test.cmake
 file(REMOVE passed failed)
 Execute_process(
-    COMMAND \${CHECKER} -t \${TMPDIR} -f -o result.csv -e log.txt ${STEPFLAG} ${STOPTIMEFLAG} \${TESTFMUSDIR}/${FMURELPATH}
+    COMMAND \${CHECKER} -t \${TMPDIR} -f -o result.csv -e log.txt ${STEPFLAG} ${STOPTIMEFLAG} \"\${TESTFMUSDIR}/${FMURELPATH}\"
     RESULT_VARIABLE passed)
 if(passed EQUAL 0)
     file(WRITE passed \"\")
@@ -455,7 +456,7 @@ endif()")
                 
             add_test(
                 NAME ${testname}
-                WORKING_DIRECTORY ${CCRDIR}
+                WORKING_DIRECTORY "${CCRDIR}"
                 COMMAND ${CMAKE_COMMAND} -DTESTFMUSDIR=${FMUCHK_FMI_PUBLIC_NORMALIZED}/Test_FMUs -DTMPDIR=${FMUCHK_BUILD} -DCHECKER=$<TARGET_FILE:${fmuCheck}> -P run_test.cmake
             )
             set_tests_properties ( 
