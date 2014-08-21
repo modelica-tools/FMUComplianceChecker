@@ -111,7 +111,7 @@ void print_usage( ) {
         "-k me\t\t Check XML and ME simulation.\n"
         "-k cs\t\t Check XML and CS simulation.\n"
         "   \t\t Multiple -k options add up.\n"
-        "   \t\t No -k option: test XML, simulate ME and CS if available.\n\n"
+        "   \t\t No -k option: test XML, simulate ME and CS respectively if supported.\n\n"
 		"-x\t\t Check XML only. Same as -k xml.\n\n"
         "-z <unzip-dir>\t Do not create and remove temp directory but use the specified one\n"
 					"\t\t for unpacking the FMU. The option takes precendence over -t.\n\n"
@@ -296,7 +296,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
     cdata->do_simulate_flg = cdata->do_test_me || cdata->do_test_cs;
 
 	if(cdata->log_file_name) {
-		cdata->log_file = fopen(cdata->log_file_name, "w");
+		cdata->log_file = fopen(cdata->log_file_name, "wb");
 		if(!cdata->log_file) {
 			cdata->log_file = stderr;
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not open %s for writing", cdata->log_file_name);
