@@ -137,7 +137,7 @@ void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 		if (variability > fmi2_variability_enu_discrete){
 			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex1);
 			fmi2_real_t* v2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex2);
-			indata->interpData[i] = v1[i] * indata->interpLambda + v2[i] * (1.0 - indata->interpLambda);
+			indata->interpData[i] = v1[i] * (1.0 - indata->interpLambda) + v2[i] * indata->interpLambda;
 		}
 		else{		/*discrete real, no interpolation*/
 			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex1);
