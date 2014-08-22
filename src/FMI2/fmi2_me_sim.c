@@ -157,12 +157,6 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 			break;
 		}
 
-        /* Set inputs */
-		if(!fmi2_status_ok_or_warning(fmistatus = fmi2_set_inputs(cdata, tcur))) {
-            jmstatus = jm_status_error;
-            break;
-        }
-
 		/* Get derivatives */
 		if( (n_states > 0) &&  !fmi2_status_ok_or_warning(fmistatus = fmi2_import_get_derivatives(fmu, states_der, n_states))) {
 			if(fmistatus != fmi2_status_discard)
@@ -180,7 +174,6 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 			tnext = tend;				
 		}
 
-
 		/*Check for eternal events*/
 		jmstatus = fmi2_check_external_events(tcur,tnext, &eventInfo, &cdata->fmu2_inputData);
 		if( jmstatus > jm_status_warning) {
@@ -197,6 +190,12 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 		hcur = tnext - tcur;
 		tcur = tnext;
 
+		/* Set inputs */
+		if(!fmi2_status_ok_or_warning(fmistatus = fmi2_set_inputs(cdata, tcur))) {
+            jmstatus = jm_status_error;
+            break;
+        }
+
 		/* integrate */
 		for (k = 0; k < n_states; k++) {
 			states[k] = states[k] + hcur*states_der[k];	
@@ -208,11 +207,6 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 				jm_log_fatal(cb, fmu_checker_module, "Could not set continuous states");
 			else
 				jm_log_warning(cb, fmu_checker_module, "Could not set continuous states since FMU returned fmiDiscard");
-			break;
-		}
-		/* Step is completed */
-		if(  !fmi2_status_ok_or_warning(fmistatus = fmi2_import_completed_integrator_step(fmu, fmi2_true, &enterEventMode, &terminateSimulation))){
-			jm_log_fatal(cb, fmu_checker_module, "Could not complete integrator step");
 			break;
 		}
 
@@ -232,6 +226,12 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 				zero_crossning_event = 1;
 				break;
 			}
+		}
+
+		/* Step is completed */
+		if(  !fmi2_status_ok_or_warning(fmistatus = fmi2_import_completed_integrator_step(fmu, fmi2_true, &enterEventMode, &terminateSimulation))){
+			jm_log_fatal(cb, fmu_checker_module, "Could not complete integrator step");
+			break;
 		}
 
 		/* Handle events */
