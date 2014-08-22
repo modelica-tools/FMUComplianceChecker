@@ -6,7 +6,7 @@ Licence information is provided in: LICENCE-FMUChecker.txt
 Acknowledgements for used software: ACKNOWLEDGEMENTS-FMUChecker.txt
 
 The FMI Compliance Checker is intended for
-validation of FMU 1.0 and 2.0RC2 compliance to the standard specification
+validation of FMU 1.0 and 2.0 compliance to the standard specification
 as published at <http://www.fmi-standard.org>
 
 The basic features include:
@@ -86,13 +86,9 @@ Options:
 -k me            Check XML and ME simulation.
 -k cs            Check XML and CS simulation.
                  Multiple -k options add up.
-                 No -k option: test XML, simulate ME and CS if available.
+                 No -k option: test XML, simulate ME and CS respectively if supported.
 
 -x               Check XML only. Same as -k xml.
-
-
--x               Check XML and stop, default is to load the DLL and simulate
-                 after this.
 
 -z <unzip-dir>   Do not create and remove temp directory but use the specified one
                  for unpacking the FMU. The option takes precendence over -t.
