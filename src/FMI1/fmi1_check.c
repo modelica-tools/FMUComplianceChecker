@@ -85,7 +85,7 @@ int fmi1_filter_outputs(fmi1_import_variable_t*vl, void * data) {
 jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 	fmi1_callback_functions_t callBackFunctions;
 	jm_callbacks* cb = &cdata->callbacks;
-	jm_status_enu_t status;
+	jm_status_enu_t status = jm_status_success;
 
 	cdata->fmu1 = fmi1_import_parse_xml(cdata->context, cdata->tmpPath);
 
