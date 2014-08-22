@@ -132,7 +132,7 @@ void fmi1_update_input_interpolation(fmi1_csv_input_t* indata, double t) {
     for(i = 0; i < fmi1_import_get_variable_list_size(indata->realInputs); i++) {
         fmi1_real_t* v1 = (fmi1_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex1);
         fmi1_real_t* v2 = (fmi1_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex2);
-        indata->interpData[i] = v1[i] * indata->interpLambda + v2[i] * (1.0 - indata->interpLambda);
+		indata->interpData[i] = v1[i] * (1.0 - indata->interpLambda) + v2[i] * indata->interpLambda;
     }
 }
 
