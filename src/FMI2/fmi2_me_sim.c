@@ -98,9 +98,8 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 	if (
 		fmi2_status_ok_or_warning(fmistatus = fmi2_set_inputs(cdata, tstart)) &&
 		fmi2_status_ok_or_warning(fmistatus =  fmi2_import_setup_experiment(fmu, toleranceControlled,relativeTolerance, tstart, fmi2_false, 0.0)) && 
-		fmi2_status_ok_or_warning(fmistatus = fmi2_import_set_time(fmu, tstart)) && 
 		fmi2_status_ok_or_warning(fmistatus = fmi2_import_enter_initialization_mode(fmu)) &&
-		fmi2_status_ok_or_warning(fmi2_import_exit_initialization_mode(fmu))){
+		fmi2_status_ok_or_warning(fmi2_import_exit_initialization_mode(fmu))) {
 
 			tcur = tstart;
 			hcur = hdef;
