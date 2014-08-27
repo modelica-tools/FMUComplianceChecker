@@ -402,7 +402,7 @@ jm_status_enu_t checked_fprintf(fmu_check_data_t* cdata, const char* fmt, ...) {
 
 jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn) {
     char buf[10000], *cursrc, *curdest;
-    int need_quoting = 0;
+/*    int need_quoting = 0; */
     jm_status_enu_t status = jm_status_success;
    	char replace_sep = ':';
 	
@@ -428,6 +428,7 @@ jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn) 
     }
     else {
         int j = 0;
+/*
         while(vn[j]) {
             char ch = vn[j];
             if((ch == cdata->CSV_separator) 
@@ -442,27 +443,28 @@ jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn) 
             j++;
         }
         if(need_quoting) {
-            curdest = buf;
-            *curdest = '"';
-            curdest++;
-            j = 0;
-            while(vn[j]) {
-                char ch = vn[j];
-                if(ch == '"') {
-                    *curdest = ch;
-                    curdest++;
-                }
+*/
+        curdest = buf;
+        *curdest = '"';
+        curdest++;
+        j = 0;
+        while(vn[j]) {
+            char ch = vn[j];
+            if(ch == '"') {
                 *curdest = ch;
                 curdest++;
-                j++;
             }
-            *curdest = '"';
+            *curdest = ch;
             curdest++;
-            *curdest = 0;
+            j++;
         }
+        *curdest = '"';
+        curdest++;
+        *curdest = 0;
+/*      }
         else {
             sprintf(buf, "%s", vn);
-        }
+        } */
     }
     status = checked_fprintf(cdata, "%c%s", cdata->CSV_separator, buf);
     if(status != jm_status_success) {

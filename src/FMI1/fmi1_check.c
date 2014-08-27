@@ -273,7 +273,7 @@ jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 		replace_sep = '|';
 	}
 
-	if(checked_fprintf(cdata,"time") != jm_status_success) {
+	if(checked_fprintf(cdata,"\"time\"") != jm_status_success) {
 		return jm_status_error;
 	}
 
