@@ -199,7 +199,7 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 	const char* fname = cdata->inputFileName;
 
 	if(!fname) return jm_status_success;
-
+	
 	jm_log_info(&cdata->callbacks, fmu_checker_module,"Opening input file %s", fname);
 
 	infile = fopen(fname, "rb");
@@ -433,6 +433,9 @@ jm_status_enu_t fmi2_check_external_events(fmi2_real_t tcur, fmi2_real_t tnext,f
 	fmi2_real_t* r1;
 	fmi2_real_t* r2;
 	fmi2_import_variable_t* v;
+
+	if(!jm_vector_get_size(double)(&indata->timeStamps)) return jm_status_success;
+
 	if(tnext <= jm_vector_get_item(double)(&indata->timeStamps,0)) {
 		return jm_status_success;
 	}
