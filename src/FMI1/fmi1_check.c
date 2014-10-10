@@ -126,12 +126,6 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 
 	cdata->vl = fmi1_import_get_variable_list(cdata->fmu1);
 
-	if(cdata->vl && !cdata->do_output_all_vars) {
-		fmi1_import_variable_list_t* vl = fmi1_import_filter_variables(cdata->vl,fmi1_filter_outputs,0);
-		fmi1_import_free_variable_list(cdata->vl);
-		cdata->vl = vl;
-	}
-
 	if(!cdata->vl) {
 		jm_log_fatal(cb, fmu_checker_module,"Could not construct model variables list");
 		return jm_status_error;
@@ -308,8 +302,9 @@ jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 			assert(0);
 		}
 #endif
-
-		status = check_fprintf_var_name(cdata, vn);
+		if (cdata->do_output_all_vars || (fmi1_import_get_causality(v) == fmi1_causality_enu_output)){
+			status = check_fprintf_var_name(cdata, vn);
+		}
 		if(status != jm_status_success) {
 			return jm_status_error;
 		}
@@ -375,18 +370,22 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 			{
 				double val;
 				fmistatus = fmi1_import_get_real(fmu,&vr, 1, &val);
-				if(fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias)
-					val = -val;
-				outstatus = checked_fprintf(cdata, fmt_r, val);
+				if (cdata->do_output_all_vars || (fmi1_import_get_causality(v) == fmi1_causality_enu_output)){
+					if(fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias)
+						val = -val;
+					outstatus = checked_fprintf(cdata, fmt_r, val);
+				}
 				break;
 			}
 		case fmi1_base_type_int:
 			{
 				int val;
 				fmistatus = fmi1_import_get_integer(fmu,&vr, 1, &val);
-				if(fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias)
-					val = -val;
-				outstatus = checked_fprintf(cdata, fmt_i, val);
+				if (cdata->do_output_all_vars || (fmi1_import_get_causality(v) == fmi1_causality_enu_output)){
+					if(fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias)
+						val = -val;
+					outstatus = checked_fprintf(cdata, fmt_i, val);
+				}
 				break;
 			}
 		case fmi1_base_type_bool:
@@ -394,12 +393,13 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 				fmi1_boolean_t val;
 				char* fmt;
 				fmistatus = fmi1_import_get_boolean(fmu,&vr, 1, &val);
-
-				if(fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias)
-					fmt = (val == fmi1_false) ? fmt_true:fmt_false;
-				else
-					fmt = (val == fmi1_true) ? fmt_true:fmt_false;
-				outstatus = checked_fprintf(cdata, fmt);
+				if (cdata->do_output_all_vars || (fmi1_import_get_causality(v) == fmi1_causality_enu_output)){
+					if(fmi1_import_get_variable_alias_kind(v) == fmi1_variable_is_negated_alias)
+						fmt = (val == fmi1_false) ? fmt_true:fmt_false;
+					else
+						fmt = (val == fmi1_true) ? fmt_true:fmt_false;
+					outstatus = checked_fprintf(cdata, fmt);
+				}
 				break;
 			}
 		case fmi1_base_type_str:
@@ -408,8 +408,10 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 				fmi1_string_t val = "test ##";
 
 				fmistatus = fmi1_import_get_string(fmu,&vr, 1, &val);
-				checked_fprintf(cdata, fmt_sep);
-				outstatus = checked_print_quoted_str(cdata, val);
+				if (cdata->do_output_all_vars || (fmi1_import_get_causality(v) == fmi1_causality_enu_output)){
+					checked_fprintf(cdata, fmt_sep);
+					outstatus = checked_print_quoted_str(cdata, val);
+				}
 				break;
 			}
 		case fmi1_base_type_enum:
@@ -434,7 +436,9 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 				else 
 #endif
 				{
-					outstatus = checked_fprintf(cdata, fmt_i, val);
+					if (cdata->do_output_all_vars || (fmi1_import_get_causality(v) == fmi1_causality_enu_output)){
+						outstatus = checked_fprintf(cdata, fmt_i, val);
+					}
 				}
 				break;
 			}
