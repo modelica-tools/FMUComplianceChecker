@@ -47,7 +47,7 @@ void  fmi2_checker_logger(fmi2_component_environment_t c, fmi2_string_t instance
 	switch(status) {
 		case fmi2_status_pending:
 		case fmi2_status_ok:
-			logLevel = jm_log_level_info;
+			logLevel = jm_log_level_verbose;
 			break;
 		case fmi2_status_discard:
 		case fmi2_status_warning:
