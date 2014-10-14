@@ -43,7 +43,7 @@ void  fmi1_checker_logger(fmi1_component_t c, fmi1_string_t instanceName, fmi1_s
 	switch(status) {
 	case fmi1_status_pending:
 	case fmi1_status_ok:
-		logLevel = jm_log_level_info;
+		logLevel = jm_log_level_verbose;
 		break;
 	case fmi1_status_discard:
 	case fmi1_status_warning:
