@@ -101,7 +101,7 @@ void print_usage( ) {
 		"-h <stepSize>\t Step size to use in forward Euler. Default is to use\n\t\t step size based on the number of output points.\n\n"
         "-i <infile>\t Name of the CSV file name with input data.\n\n"
 		"-l <log level>\t Log level: 0 - no logging, 1 - fatal errors only,\n\t\t 2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.\n\n"
-        "-m\t\t Mangle variable names to avoid quoting (needed for some CSV\n\t\t importing applications).\n\n"
+        "-m\t\t Mangle variable names to avoid quoting (needed for some CSV\n\t\t importing applications, but not according to the CrossCheck rules).\n\n"
 		"-n <num_steps>\t Maximum number of output points. Zero means output\n\t\t in every step. Default is " DEFAULT_NUM_STEPS_STR ".\n\n"
 		"-o <filename>\t Simulation result output CSV file name. Default is to use standard output.\n\n"
 		"-s <stopTime>\t Simulation stop time, default is to use information from\n\t\t'DefaultExperiment' as specified in the model description XML.\n\n"
@@ -402,7 +402,7 @@ jm_status_enu_t checked_fprintf(fmu_check_data_t* cdata, const char* fmt, ...) {
 
 jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn) {
     char buf[10000], *cursrc, *curdest;
-/*    int need_quoting = 0; */
+    int need_quoting = 1;
     jm_status_enu_t status = jm_status_success;
    	char replace_sep = ':';
 	
@@ -428,7 +428,6 @@ jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn) 
     }
     else {
         int j = 0;
-/*
         while(vn[j]) {
             char ch = vn[j];
             if((ch == cdata->CSV_separator) 
@@ -443,28 +442,27 @@ jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn) 
             j++;
         }
         if(need_quoting) {
-*/
-        curdest = buf;
-        *curdest = '"';
-        curdest++;
-        j = 0;
-        while(vn[j]) {
-            char ch = vn[j];
-            if(ch == '"') {
+            curdest = buf;
+            *curdest = '"';
+            curdest++;
+            j = 0;
+            while(vn[j]) {
+                char ch = vn[j];
+                if(ch == '"') {
+                    *curdest = ch;
+                    curdest++;
+                }
                 *curdest = ch;
                 curdest++;
+                j++;
             }
-            *curdest = ch;
+            *curdest = '"';
             curdest++;
-            j++;
+            *curdest = 0;
         }
-        *curdest = '"';
-        curdest++;
-        *curdest = 0;
-/*      }
         else {
             sprintf(buf, "%s", vn);
-        } */
+        }
     }
     status = checked_fprintf(cdata, "%c%s", cdata->CSV_separator, buf);
     if(status != jm_status_success) {

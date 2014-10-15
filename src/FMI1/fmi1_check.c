@@ -267,8 +267,15 @@ jm_status_enu_t fmi1_write_csv_header(fmu_check_data_t* cdata) {
 		replace_sep = '|';
 	}
 
-	if(checked_fprintf(cdata,"\"time\"") != jm_status_success) {
-		return jm_status_error;
+	if (cdata->do_mangle_var_names){
+		if(checked_fprintf(cdata,"time") != jm_status_success) {
+			return jm_status_error;	
+		}
+	}
+	else {
+		if(checked_fprintf(cdata,"\"time\"") != jm_status_success) {
+			return jm_status_error;
+		}
 	}
 
 	for(i = 0; i < n; i++) {
