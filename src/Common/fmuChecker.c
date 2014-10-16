@@ -708,7 +708,8 @@ int main(int argc, char *argv[])
 				"\tWarnings were ignored (log level: %s)", jm_log_level_to_string( callbacks->log_level ));
 		}
 		else  
-			jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\t%u Warning(s)", cdata.num_warnings);
+		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\t%u Warning(s)", cdata.num_warnings);
+		if ((cdata.num_fatal > 0)) cdata.num_errors=cdata.num_errors+cdata.num_fatal;
 		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\t%u Error(s)", cdata.num_errors);
 	}
 	if((status == jm_status_success) && (cdata.num_fatal == 0)) {
@@ -718,7 +719,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, 
-			"\tFatal error occurred during processing");
+			"\t%u Fatal error(s) occurred during processing",cdata.num_fatal);
 		if(cdata.log_file && (cdata.log_file != stderr))
 			fclose(cdata.log_file);
 		do_exit(1);
