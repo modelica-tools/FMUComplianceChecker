@@ -129,7 +129,7 @@ void print_usage( ) {
 }
 
 void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
-    int do_test_everything=1;
+	int do_test_everything=1;
 	size_t i;
  	if(argc < 2) {
 		print_usage();
@@ -305,7 +305,6 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		}
 	}
 
-	
 	{
 		jm_log_level_enu_t log_level = cdata->callbacks.log_level;
 		jm_log_verbose(&cdata->callbacks,fmu_checker_module,"Setting log level to [%s]", jm_log_level_to_string(log_level));
@@ -629,6 +628,8 @@ int main(int argc, char *argv[])
 	jm_log_level_enu_t log_level = jm_log_level_info;
 	jm_callbacks* callbacks;
 	int i = 0;	
+    int cnt;
+	char clopts[JM_MAX_ERROR_MESSAGE_SIZE];
 
 	init_fmu_check_data(&cdata);
 	callbacks = &cdata.callbacks;
@@ -643,6 +644,17 @@ int main(int argc, char *argv[])
 #else
 	jm_log_info(callbacks,fmu_checker_module,"FMI compliance checker " FMUCHK_VERSION " [FMILibrary: "FMIL_VERSION"] build date: "__DATE__ );
 #endif
+
+	/*Print commad line arguments to log.*/
+	strcpy(clopts, argv[0]);
+	for( cnt = 1; cnt < argc; cnt++ ){
+		strcat(clopts," ");
+		strcat(clopts,argv[cnt]);
+	}
+	strcat(clopts,"\0");
+	jm_log_info(callbacks,fmu_checker_module,"Called with following options:");
+	jm_log_info(callbacks,fmu_checker_module,clopts);
+
 
 	jm_log_info(callbacks,fmu_checker_module,"Will process FMU %s",cdata.FMUPath);
 
