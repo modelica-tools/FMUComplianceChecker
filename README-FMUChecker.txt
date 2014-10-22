@@ -28,9 +28,9 @@ The basic features include:
     fixed communication step size;
 	- log computed solution to csv result file (comma separated values,
     file format is by default compatible with RFC4180, http://www.ietf.org/rfc/rfc4180.txt;
-	the header containt variable names, first column is time, alternative 
+	the header contains variable names, first column is time, alternative 
     field separator may be specified as an option).
-    - can supply numerical input data to the simulation from an CSV file. 
+    - can supply numerical input data to the simulation from an CSV file. Input start values from FMU binary (not XML) will be used in case no input is provided.
     String inputs are currently not supported. The input file is expected to be 
     RFC4180 compatible with following modifications:
       - The file must be in UTF-8 encoding;
@@ -54,6 +54,8 @@ Options:
 
 -c <separator>   Separator character to be used in CSV output. Default is ','.
 
+-d               Print also left limit values at event points to the output file to investigate event behaviour. Default is to only print values after event handling.
+
 -e <filename>    Error log file name. Default is to use standard error.
 
 -f               Print all variables to the output file. Default is to only print outputs.
@@ -67,7 +69,7 @@ Options:
                  2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.
 
 -m               Mangle variable names to avoid quoting (needed for some CSV
-                 importing applications).
+                 importing applications, but not according to the CrossCheck rules).
 
 -n <num_steps>   Maximum number of output points. Zero means output
                  in every step. Default is 500.
@@ -78,7 +80,7 @@ Options:
                 'DefaultExperiment' as specified in the model description XML.
 
 -t <tmp-dir>     Temporary dir to use for unpacking the FMU.
-                 Default is to use system-wide directory, e.g., C:\Temp.
+                 Default is to use system-wide directory, e.g., C:\Temp or /tmp.
 
 -v               Print the checker version information.
 
@@ -95,10 +97,9 @@ Options:
 
 Command line examples:
 
-fmuCheck.win32 model.fmu 
-        The checker on win32 platform will process "model.fmu"  with default 
-        options.
-                
+fmuCheck.win32 model.fmu
+        The checker on win32 platform will process 'model.fmu'  with default options.
+
 fmuCheck.win64 -e log.txt -o result.csv -c , -s 2 -h 1e-3 -l 5 -t . model.fmu 
         The checker on win64 platform will process "model.fmu". The log 
         messages will be saved in log.txt, simulation output in 
