@@ -178,6 +178,13 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 			else if(zero_crossning_event) eventKind = "state";
 			else eventKind = "time";
 			jm_log_verbose(cb, fmu_checker_module, "Handling a %s event", eventKind);
+
+			if(cdata->print_all_event_vars){
+				/* print variable values before event handling*/
+				if(fmi1_write_csv_data(cdata, tcur) != jm_status_success) {
+				jmstatus = jm_status_error;
+				}
+			}
 			if( !fmi1_status_ok_or_warning(fmistatus = fmi1_import_eventUpdate(fmu, intermediateResults, &eventInfo))) {
 				jm_log_fatal(cb, fmu_checker_module, "Event update call failed");
 				break;

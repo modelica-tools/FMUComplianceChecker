@@ -165,6 +165,10 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 			counts.num_string_vars);
 
 		checker_logger(cb, fmu_checker_module,jm_log_level_info,buf);
+
+		if (!cdata->inputFileName && (counts.num_inputs>0)){
+			jm_log_verbose(cb, fmu_checker_module,"No input data provided. Simulation will use initial values from FMU.");
+		}
 	}
 
 	jm_log_info(cb, fmu_checker_module,"Printing output file header");

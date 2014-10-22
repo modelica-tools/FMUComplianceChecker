@@ -96,6 +96,7 @@ void print_usage( ) {
 	printf(	"Usage: fmuCheck." FMI_PLATFORM " [options] <model.fmu>\n\n"
 		"Options:\n\n"
 		"-c <separator>\t Separator character to be used in CSV output. Default is ','.\n\n"
+		"-d\t\t Print also left limit values at event points to the output file to investigate event behaviour. Default is to only print values after event handling.\n\n"
 		"-e <filename>\t Error log file name. Default is to use standard error.\n\n"
         "-f\t\t Print all variables to the output file. Default is to only print outputs.\n\n"
 		"-h <stepSize>\t Step size to use in forward Euler. Default is to use\n\t\t step size based on the number of output points.\n\n"
@@ -261,6 +262,10 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
             cdata->do_mangle_var_names = 1;
             break;
         }
+		case 'd': {   /*    "-d\t\t Print also left limit values at event points to the output file to investigate event behaviour. Default is to only print values after event handling.\n\n" */
+            cdata->print_all_event_vars = 1;
+            break;
+                  }
         case 'v': {
             print_version();
                 break;
@@ -523,6 +528,7 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
     cdata->require_cs = 0;
     cdata->do_mangle_var_names = 0;
     cdata->do_output_all_vars = 0;
+	cdata->print_all_event_vars = 0;
 
 	cdata->version = fmi_version_unknown_enu;
 

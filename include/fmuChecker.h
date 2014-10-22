@@ -142,6 +142,9 @@ struct fmu_check_data_t {
     /** should all variables be printed (-f switch) */
     int do_output_all_vars;
 
+	/** should variables be printed before event handling (-d switch) */
+    int print_all_event_vars;
+
 	/** FMI standard version of the FMU */
 	fmi_version_enu_t version;
 
