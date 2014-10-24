@@ -1,6 +1,14 @@
 File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
 
+2014-10-24 Version 2.0.1
+- Feature updates:
+  - Added call to Checker to logfile for improved documentation
+  - More detailed error report
+  - Moved FMU status reports to verbose level
+  - Evaluation of all variables at all time steps to make sure everything may be calculated
+
+
 2014-08-22 Version 2.0
 - Feature updates:
  - Support for FMIL 2.0 resp. FMI 2.0
