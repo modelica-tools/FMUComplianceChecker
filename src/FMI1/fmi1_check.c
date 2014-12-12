@@ -192,7 +192,7 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 	callBackFunctions.logger = fmi1_checker_logger;
 	callBackFunctions.stepFinished = 0;
 
-	if ((cdata->fmu1_kind & fmi1_fmu_kind_enu_me) == 0 && cdata->require_me) {
+	if ((cdata->fmu1_kind > fmi1_fmu_kind_enu_me) && cdata->require_me) {
 		jm_log_error(cb, fmu_checker_module, "Testing of ME requested but not an ME FMU!");
 	}
 	if( (cdata->fmu1_kind == fmi1_fmu_kind_enu_me) && (cdata->do_test_me) ) {
