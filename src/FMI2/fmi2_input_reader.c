@@ -210,12 +210,14 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 	}
 
 	/* first column must be time */
-	if(    (fscanf(infile, "time%c",&sep) != 1)
-		&& (fscanf(infile, """time""%c",&sep) != 1)) {
-			jm_log_error(&cdata->callbacks, fmu_checker_module, "Input file must be a CSV file with a header. First column must be time.");
-			fclose(infile);
-			return jm_status_error;
-	}
+    buf = fgetc(infile);
+    if(    (buf == 't' ) && (fscanf(infile, "ime%c",&sep) != 1)
+        || (buf == '"' ) && (fscanf(infile, "time\"%c",&sep) != 1)
+        || (buf != '"' ) && (buf != 't' )) {
+        jm_log_error(&cdata->callbacks, fmu_checker_module, "Input file must be a CSV file with a header. First column must be time.");
+        fclose(infile);
+        return jm_status_error;
+    }
 	jm_log_info(&cdata->callbacks, fmu_checker_module,"Detected separator character in input file: %c", sep);
 
 	/* read the header */
@@ -245,11 +247,19 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 				if(buf == '"') {
 					/* double quote twice is just a double quote */
 				}
-				else if(buf == sep){
-					/* quoted name ended */
-					quotedFlg = 0;
-					continue;                        
-				}
+                else if((buf == sep)||(buf == '\r') ||(buf == '\n')){
+                    /* quoted name ended */
+                    quotedFlg = 0;
+                    if (buf == '\r') {
+                        buf = fgetc(infile);
+                        if(buf != '\n') {
+                            fclose(infile);
+                            jm_log_error(&cdata->callbacks, fmu_checker_module, "Expected CR+LF or just LF as end of line in input file. Got: CR+[%X]",buf);
+                            return jm_status_error;
+                        }   
+                    }
+                    continue;                        
+                }
 				else {
 					fclose(infile);
 					namebuffer[namelen] = 0;
