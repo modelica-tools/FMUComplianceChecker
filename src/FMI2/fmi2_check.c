@@ -47,7 +47,7 @@ void  fmi2_checker_logger(fmi2_component_environment_t c, fmi2_string_t instance
 	switch(status) {
 		case fmi2_status_pending:
 		case fmi2_status_ok:
-			logLevel = jm_log_level_info;
+			logLevel = jm_log_level_verbose;
 			break;
 		case fmi2_status_discard:
 		case fmi2_status_warning:
@@ -149,12 +149,6 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 
 	cdata->vl2 = fmi2_import_get_variable_list(cdata->fmu2, 0);
 
-    if(cdata->vl2 && !cdata->do_output_all_vars) {
-        fmi2_import_variable_list_t* vl = fmi2_import_filter_variables(cdata->vl2,fmi2_filter_outputs,0);
-        fmi2_import_free_variable_list(cdata->vl2);
-        cdata->vl2 = vl;
-    }
-
     if(!cdata->vl2) {
 		jm_log_fatal(cb, fmu_checker_module,"Could not construct model variables list");
 		return jm_status_error;
@@ -174,7 +168,8 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 			"%u inputs\n"
 			"%u outputs\n"
 			"%u local variables\n"
-			"%u parameters\n"
+			"%u independent variables\n"
+			"%u calculated parameters\n"
 			"%u real variables\n"
 			"%u integer variables\n"
 			"%u enumeration variables\n"
@@ -187,13 +182,19 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 			counts.num_inputs,
 			counts.num_outputs,
 			counts.num_local,
-			counts.num_parameters,
+			counts.num_independent,
+			counts.num_calculated_parameters,
 			counts.num_real_vars,
 			counts.num_integer_vars,
 			counts.num_enum_vars,
 			counts.num_bool_vars,
 			counts.num_string_vars);
 		checker_logger(cb, fmu_checker_module,jm_log_level_info,buf);
+
+		if (!cdata->inputFileName && (counts.num_inputs>0)){
+			jm_log_info(cb, fmu_checker_module,"No input data provided. In case of simulation initial values from FMU will be used.");
+		}
+
 	}
 
 	jm_log_info(cb, fmu_checker_module,"Printing output file header");
@@ -216,7 +217,11 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 	callBackFunctions.stepFinished = 0;
 	callBackFunctions.componentEnvironment = cdata;
 
-	if( (cdata->fmu2_kind == fmi2_fmu_kind_me) || (cdata->fmu2_kind == fmi2_fmu_kind_me_and_cs)) {
+    if ((cdata->fmu2_kind & fmi2_fmu_kind_me) == 0 && cdata->require_me) {
+        jm_log_error(cb, fmu_checker_module, "Testing of ME requested but not an ME FMU!");
+    }
+	if( ((cdata->fmu2_kind == fmi2_fmu_kind_me) || (cdata->fmu2_kind == fmi2_fmu_kind_me_and_cs))
+      && (cdata->do_test_me)) {
 		cdata->modelIdentifierME = fmi2_import_get_model_identifier_ME(cdata->fmu2);
 	    jm_log_info(cb, fmu_checker_module,"Model identifier for ModelExchange: %s", cdata->modelIdentifierME);
 
@@ -243,7 +248,11 @@ jm_status_enu_t fmi2_check(fmu_check_data_t* cdata) {
 			status = fmi2_me_simulate(cdata);
 		}
 	}
-	if( (cdata->fmu2_kind == fmi2_fmu_kind_cs) || (cdata->fmu2_kind == fmi2_fmu_kind_me_and_cs)) {
+    if ((cdata->fmu2_kind & fmi2_fmu_kind_cs) == 0 && cdata->require_cs) {
+        jm_log_error(cb, fmu_checker_module, "Testing of CS requested but not a CS FMU!");
+    }
+	if( ((cdata->fmu2_kind == fmi2_fmu_kind_cs) || (cdata->fmu2_kind == fmi2_fmu_kind_me_and_cs))
+      && cdata->do_test_cs) {
 		jm_status_enu_t savedStatus = status;
 		cdata->modelIdentifierCS = fmi2_import_get_model_identifier_CS(cdata->fmu2);
 	    jm_log_info(cb, fmu_checker_module,"Model identifier for CoSimulation: %s", cdata->modelIdentifierCS);
@@ -286,8 +295,15 @@ jm_status_enu_t fmi2_write_csv_header(fmu_check_data_t* cdata) {
 		replace_sep = '|';
 	}
 
-	if(checked_fprintf(cdata,"time") != jm_status_success) {
-		return jm_status_error;
+	if (cdata->do_mangle_var_names){
+		if(checked_fprintf(cdata,"time") != jm_status_success) {
+			return jm_status_error;	
+		}
+	}
+	else {
+		if(checked_fprintf(cdata,"\"time\"") != jm_status_success) {
+			return jm_status_error;
+		}
 	}
 
     for(i = 0; i < n; i++) {
@@ -309,7 +325,9 @@ jm_status_enu_t fmi2_write_csv_header(fmu_check_data_t* cdata) {
             assert(0);
         }
 #endif
-        status = check_fprintf_var_name(cdata, vn);
+      if (cdata->do_output_all_vars || (fmi2_import_get_causality(v) == fmi2_causality_enu_output)){
+		  status = check_fprintf_var_name(cdata, vn);
+	  }
 		if(status != jm_status_success) {
 			return jm_status_error;
 		}
@@ -375,14 +393,18 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 			{
 				double val;
 				fmistatus = fmi2_import_get_real(fmu,&vr, 1, &val);
-				outstatus = checked_fprintf(cdata, fmt_r, val);
+				if (cdata->do_output_all_vars || (fmi2_import_get_causality(v) == fmi2_causality_enu_output)){
+					outstatus = checked_fprintf(cdata, fmt_r, val);
+				}
 				break;
 			}
 		case fmi2_base_type_int:
 			{
 				int val;
 				fmistatus = fmi2_import_get_integer(fmu,&vr, 1, &val);
-				outstatus = checked_fprintf(cdata, fmt_i, val);
+				if (cdata->do_output_all_vars || (fmi2_import_get_causality(v) == fmi2_causality_enu_output)){
+					outstatus = checked_fprintf(cdata, fmt_i, val);
+				}
 				break;
 			}
 		case fmi2_base_type_bool:
@@ -390,9 +412,10 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 				fmi2_boolean_t val;
 				char* fmt;
 				fmistatus = fmi2_import_get_boolean(fmu,&vr, 1, &val);
-				
-				fmt = (val == fmi2_true) ? fmt_true:fmt_false;
-				outstatus = checked_fprintf(cdata, fmt);
+				if (cdata->do_output_all_vars || (fmi2_import_get_causality(v) == fmi2_causality_enu_output)){
+					fmt = (val == fmi2_true) ? fmt_true:fmt_false;
+					outstatus = checked_fprintf(cdata, fmt);
+				}
 				break;
 			}
 		case fmi2_base_type_str:
@@ -400,8 +423,10 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 				fmi2_string_t val;
 				
 				fmistatus = fmi2_import_get_string(fmu,&vr, 1, &val);
-				checked_fprintf(cdata, fmt_sep);
-				outstatus = checked_print_quoted_str(cdata, val);
+				if (cdata->do_output_all_vars || (fmi2_import_get_causality(v) == fmi2_causality_enu_output)){
+					checked_fprintf(cdata, fmt_sep);
+					outstatus = checked_print_quoted_str(cdata, val);
+				}
 				break;
 			}
 		case fmi2_base_type_enum:
@@ -426,7 +451,9 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 				else 
 #endif
                 {
-					outstatus = checked_fprintf(cdata, fmt_i, val);
+					if (cdata->do_output_all_vars || (fmi2_import_get_causality(v) == fmi2_causality_enu_output)){
+						outstatus = checked_fprintf(cdata, fmt_i, val);
+					}
 				}
 				break;
 			}

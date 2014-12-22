@@ -137,7 +137,7 @@ void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 		if (variability > fmi2_variability_enu_discrete){
 			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex1);
 			fmi2_real_t* v2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex2);
-			indata->interpData[i] = v1[i] * indata->interpLambda + v2[i] * (1.0 - indata->interpLambda);
+			indata->interpData[i] = v1[i] * (1.0 - indata->interpLambda) + v2[i] * indata->interpLambda;
 		}
 		else{		/*discrete real, no interpolation*/
 			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex1);
@@ -199,7 +199,7 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 	const char* fname = cdata->inputFileName;
 
 	if(!fname) return jm_status_success;
-
+	
 	jm_log_info(&cdata->callbacks, fmu_checker_module,"Opening input file %s", fname);
 
 	infile = fopen(fname, "rb");
@@ -210,12 +210,14 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 	}
 
 	/* first column must be time */
-	if(    (fscanf(infile, "time%c",&sep) != 1)
-		&& (fscanf(infile, """time""%c",&sep) != 1)) {
-			jm_log_error(&cdata->callbacks, fmu_checker_module, "Input file must be a CSV file with a header. First column must be time.");
-			fclose(infile);
-			return jm_status_error;
-	}
+    buf = fgetc(infile);
+    if(    (buf == 't' ) && (fscanf(infile, "ime%c",&sep) != 1)
+        || (buf == '"' ) && (fscanf(infile, "time\"%c",&sep) != 1)
+        || (buf != '"' ) && (buf != 't' )) {
+        jm_log_error(&cdata->callbacks, fmu_checker_module, "Input file must be a CSV file with a header. First column must be time.");
+        fclose(infile);
+        return jm_status_error;
+    }
 	jm_log_info(&cdata->callbacks, fmu_checker_module,"Detected separator character in input file: %c", sep);
 
 	/* read the header */
@@ -245,11 +247,19 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 				if(buf == '"') {
 					/* double quote twice is just a double quote */
 				}
-				else if(buf == sep){
-					/* quoted name ended */
-					quotedFlg = 0;
-					continue;                        
-				}
+                else if((buf == sep)||(buf == '\r') ||(buf == '\n')){
+                    /* quoted name ended */
+                    quotedFlg = 0;
+                    if (buf == '\r') {
+                        buf = fgetc(infile);
+                        if(buf != '\n') {
+                            fclose(infile);
+                            jm_log_error(&cdata->callbacks, fmu_checker_module, "Expected CR+LF or just LF as end of line in input file. Got: CR+[%X]",buf);
+                            return jm_status_error;
+                        }   
+                    }
+                    continue;                        
+                }
 				else {
 					fclose(infile);
 					namebuffer[namelen] = 0;
@@ -433,6 +443,9 @@ jm_status_enu_t fmi2_check_external_events(fmi2_real_t tcur, fmi2_real_t tnext,f
 	fmi2_real_t* r1;
 	fmi2_real_t* r2;
 	fmi2_import_variable_t* v;
+
+	if(!jm_vector_get_size(double)(&indata->timeStamps)) return jm_status_success;
+
 	if(tnext <= jm_vector_get_item(double)(&indata->timeStamps,0)) {
 		return jm_status_success;
 	}

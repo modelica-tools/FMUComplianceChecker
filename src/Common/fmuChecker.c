@@ -82,23 +82,38 @@ void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_le
 	}
 }
 
+void print_version() {
+    printf("FMI compliance checker " FMUCHK_VERSION " [FMILibrary: "FMIL_VERSION"] build date: "__DATE__
+#ifdef FMILIB_ENABLE_LOG_LEVEL_DEBUG
+        " "__TIME__
+#endif
+        "\n");
+}
+ 
 
 void print_usage( ) {
-	printf("FMI compliance checker version " FMUCHK_VERSION "[FMILibrary:"FMIL_VERSION"]\n"
-		"Usage: fmuCheck." FMI_PLATFORM " [options] <model.fmu>\n\n"
+    print_version();
+	printf(	"Usage: fmuCheck." FMI_PLATFORM " [options] <model.fmu>\n\n"
 		"Options:\n\n"
 		"-c <separator>\t Separator character to be used in CSV output. Default is ','.\n\n"
+		"-d\t\t Print also left limit values at event points to the output file to investigate event behaviour. Default is to only print values after event handling.\n\n"
 		"-e <filename>\t Error log file name. Default is to use standard error.\n\n"
         "-f\t\t Print all variables to the output file. Default is to only print outputs.\n\n"
 		"-h <stepSize>\t Step size to use in forward Euler. Default is to use\n\t\t step size based on the number of output points.\n\n"
         "-i <infile>\t Name of the CSV file name with input data.\n\n"
 		"-l <log level>\t Log level: 0 - no logging, 1 - fatal errors only,\n\t\t 2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.\n\n"
-        "-m\t\t Mangle variable names to avoid quoting (needed for some CSV\n\t\t importing applications).\n\n"
+        "-m\t\t Mangle variable names to avoid quoting (needed for some CSV\n\t\t importing applications, but not according to the CrossCheck rules).\n\n"
 		"-n <num_steps>\t Maximum number of output points. Zero means output\n\t\t in every step. Default is " DEFAULT_NUM_STEPS_STR ".\n\n"
 		"-o <filename>\t Simulation result output CSV file name. Default is to use standard output.\n\n"
 		"-s <stopTime>\t Simulation stop time, default is to use information from\n\t\t'DefaultExperiment' as specified in the model description XML.\n\n"
-		"-t <tmp-dir>\t Temporary dir to use for unpacking the FMU.\n\t\t Default is to use system-wide directory, e.g., C:\\Temp.\n\n"
-		"-x\t\t Check XML and stop, default is to load the DLL and simulate\n\t\t after this.\n\n"
+		"-t <tmp-dir>\t Temporary dir to use for unpacking the FMU.\n\t\t Default is to use system-wide directory, e.g., C:\\Temp or /tmp.\n\n"
+        "-v\t\t Print the checker version information.\n\n"
+        "-k xml\t\t Check XML only.\n"
+        "-k me\t\t Check XML and ME simulation.\n"
+        "-k cs\t\t Check XML and CS simulation.\n"
+        "   \t\t Multiple -k options add up.\n"
+        "   \t\t No -k option: test XML, simulate ME and CS respectively if supported.\n\n"
+		"-x\t\t Check XML only. Same as -k xml.\n\n"
         "-z <unzip-dir>\t Do not create and remove temp directory but use the specified one\n"
 					"\t\t for unpacking the FMU. The option takes precendence over -t.\n\n"
 		"Command line examples:\n\n"
@@ -115,11 +130,16 @@ void print_usage( ) {
 }
 
 void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
+	int do_test_everything=1;
 	size_t i;
  	if(argc < 2) {
 		print_usage();
 		do_exit(0);
 	}
+    if((argc == 2) && strcmp(argv[1], "-v") == 0) {
+        print_version();
+        do_exit(0);
+    }
 
 	i=1;
 	while(i < (size_t)(argc - 1)) {
@@ -130,9 +150,32 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		}
 		option++;
 		switch(*option) {
-		case 'x':
-			cdata->do_simulate_flg = 0;
+		case 'x': /* same as -k xml */
+            do_test_everything = 0;
 			break;
+        case 'k':
+            do_test_everything = 0;
+
+			i++;
+			option = argv[i];
+            
+            {
+                /* convert option to lowecase */
+                char *ch = (char *)option;
+                while (*ch != 0) {
+                    *ch = tolower(*ch);
+                    ch++;
+                }
+            }
+            
+            if      (strcmp(option, "me")  == 0) cdata->require_me = 1;
+            else if (strcmp(option, "cs")  == 0) cdata->require_cs = 1;
+            else if (strcmp(option, "xml") == 0) {}
+            else {
+				jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Unsupported option '-k %s'.\nRun without arguments to see help.", option);
+				do_exit(1);
+            }                
+            break;
 		case 's': {
 			/* <stopTime>\t Simulation stop time, default is to use information from 'DefaultExperiment'\n" */
 			double endTime;
@@ -209,7 +252,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			i++;
 			cdata->temp_dir = argv[i];
 			break;
-
+                  }
 		case 'i': {   /*     "-i <infile>\t Name of the CSV file name with input data.\n\n" */
             i++;
             cdata->inputFileName = argv[i];
@@ -218,8 +261,15 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
         case 'm':{ /* "Print enums and booleans as integers (default is to print item names, true and false)." */            
             cdata->do_mangle_var_names = 1;
             break;
-        }            
-				  }
+        }
+		case 'd': {   /*    "-d\t\t Print also left limit values at event points to the output file to investigate event behaviour. Default is to only print values after event handling.\n\n" */
+            cdata->print_all_event_vars = 1;
+            break;
+                  }
+        case 'v': {
+            print_version();
+                break;
+                  }
         case 'z': { /* "-z <unzip-dir>\t Do not create temp directory but use the specified one\n\t\t for unpacking the FMU The option takes precendence over -t." */
 			char cwd[10000];
             i++;
@@ -246,8 +296,12 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 	}
 	cdata->FMUPath = argv[i];
 
+    cdata->do_test_me = cdata->require_me || do_test_everything;
+    cdata->do_test_cs = cdata->require_cs || do_test_everything;
+    cdata->do_simulate_flg = cdata->do_test_me || cdata->do_test_cs;
+
 	if(cdata->log_file_name) {
-		cdata->log_file = fopen(cdata->log_file_name, "w");
+		cdata->log_file = fopen(cdata->log_file_name, "wb");
 		if(!cdata->log_file) {
 			cdata->log_file = stderr;
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not open %s for writing", cdata->log_file_name);
@@ -256,7 +310,6 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		}
 	}
 
-	
 	{
 		jm_log_level_enu_t log_level = cdata->callbacks.log_level;
 		jm_log_verbose(&cdata->callbacks,fmu_checker_module,"Setting log level to [%s]", jm_log_level_to_string(log_level));
@@ -305,7 +358,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		do_exit(1);
 	}
 	if(cdata->output_file_name) {
-		cdata->out_file = fopen(cdata->output_file_name, "w");
+		cdata->out_file = fopen(cdata->output_file_name, "wb");
 		if(!cdata->out_file) {
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Could not open %s for writing", cdata->output_file_name);
 			clear_fmu_check_data(cdata, 1);
@@ -353,7 +406,7 @@ jm_status_enu_t checked_fprintf(fmu_check_data_t* cdata, const char* fmt, ...) {
 
 jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn) {
     char buf[10000], *cursrc, *curdest;
-    int need_quoting = 0;
+    int need_quoting = 1;
     jm_status_enu_t status = jm_status_success;
    	char replace_sep = ':';
 	
@@ -469,8 +522,13 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->log_file = stderr;
     cdata->inputFileName = 0;
 	cdata->do_simulate_flg = 1;
+    cdata->do_test_me = 1;
+    cdata->do_test_cs = 1;
+    cdata->require_me = 0;
+    cdata->require_cs = 0;
     cdata->do_mangle_var_names = 0;
     cdata->do_output_all_vars = 0;
+	cdata->print_all_event_vars = 0;
 
 	cdata->version = fmi_version_unknown_enu;
 
@@ -576,6 +634,8 @@ int main(int argc, char *argv[])
 	jm_log_level_enu_t log_level = jm_log_level_info;
 	jm_callbacks* callbacks;
 	int i = 0;	
+    int cnt;
+	char clopts[JM_MAX_ERROR_MESSAGE_SIZE];
 
 	init_fmu_check_data(&cdata);
 	callbacks = &cdata.callbacks;
@@ -584,6 +644,24 @@ int main(int argc, char *argv[])
 #ifdef FMILIB_GENERATE_BUILD_STAMP
 	jm_log_debug(callbacks,fmu_checker_module,"FMIL build stamp:\n%s\n", fmilib_get_build_stamp());
 #endif
+	
+#ifdef FMILIB_ENABLE_LOG_LEVEL_DEBUG
+	jm_log_info(callbacks,fmu_checker_module,"FMI compliance checker " FMUCHK_VERSION " [FMILibrary: "FMIL_VERSION"] build date: "__DATE__ " "__TIME__);
+#else
+	jm_log_info(callbacks,fmu_checker_module,"FMI compliance checker " FMUCHK_VERSION " [FMILibrary: "FMIL_VERSION"] build date: "__DATE__ );
+#endif
+
+	/*Print commad line arguments to log.*/
+	strcpy(clopts, argv[0]);
+	for( cnt = 1; cnt < argc; cnt++ ){
+		strcat(clopts," ");
+		strcat(clopts,argv[cnt]);
+	}
+	strcat(clopts,"\0");
+	jm_log_info(callbacks,fmu_checker_module,"Called with following options:");
+	jm_log_info(callbacks,fmu_checker_module,clopts);
+
+
 	jm_log_info(callbacks,fmu_checker_module,"Will process FMU %s",cdata.FMUPath);
 
 	cdata.context = fmi_import_allocate_context(callbacks);
@@ -603,7 +681,7 @@ int main(int argc, char *argv[])
 		break;
 	default:
 		clear_fmu_check_data(&cdata, 1);
-		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 and 2.0RC1 are supported so far");
+		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 and 2.0 RC2 are supported so far");
 		do_exit(1);
 	}
 
@@ -636,7 +714,8 @@ int main(int argc, char *argv[])
 				"\tWarnings were ignored (log level: %s)", jm_log_level_to_string( callbacks->log_level ));
 		}
 		else  
-			jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\t%u Warning(s)", cdata.num_warnings);
+		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\t%u Warning(s)", cdata.num_warnings);
+		if ((cdata.num_fatal > 0)) cdata.num_errors=cdata.num_errors+cdata.num_fatal;
 		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\t%u Error(s)", cdata.num_errors);
 	}
 	if((status == jm_status_success) && (cdata.num_fatal == 0)) {
@@ -646,7 +725,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, 
-			"\tFatal error occurred during processing");
+			"\t%u Fatal error(s) occurred during processing",cdata.num_fatal);
 		if(cdata.log_file && (cdata.log_file != stderr))
 			fclose(cdata.log_file);
 		do_exit(1);
