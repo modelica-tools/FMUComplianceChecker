@@ -14,6 +14,7 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <assert.h>
+#include <sys/stat.h>
 
 #if defined(_WIN32) || defined(WIN32)
 	#include <Shlwapi.h>
@@ -24,6 +25,7 @@
 #include <fmilib.h>
 #include <fmuChecker.h>
 #include <fmu_checker_version.h>
+#include <fmilib_config.h>
 
 const char* fmu_checker_module = "FMUCHK";
 
@@ -42,7 +44,7 @@ int allocated_mem_blocks = 0;
 void* check_calloc(size_t nobj, size_t size) {
 	void* ret = calloc(nobj, size);
 	if(ret) allocated_mem_blocks++;
-	jm_log_verbose(&cdata_global_ptr->callbacks, fmu_checker_module, 
+	jm_log_verbose(&cdata_global_ptr->callbacks, fmu_checker_module,
 		"allocateMemory( %u, %u) called. Returning pointer: %p",nobj,size,ret);
 	return ret;
 }
@@ -65,7 +67,7 @@ void checker_logger(jm_callbacks* c, jm_string module, jm_log_level_enu_t log_le
 		cdata->num_errors++;
 	else if(log_level == jm_log_level_fatal)
 		cdata->num_fatal++;
-	
+
 	if(log_level)
 		ret = fprintf(cdata->log_file, "[%s][%s] %s\n", jm_log_level_to_string(log_level), module, message);
 	else
@@ -89,7 +91,7 @@ void print_version() {
 #endif
         "\n");
 }
- 
+
 
 void print_usage( ) {
     print_version();
@@ -158,7 +160,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 
 			i++;
 			option = argv[i];
-            
+
             {
                 /* convert option to lowecase */
                 char *ch = (char *)option;
@@ -167,14 +169,14 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
                     ch++;
                 }
             }
-            
+
             if      (strcmp(option, "me")  == 0) cdata->require_me = 1;
             else if (strcmp(option, "cs")  == 0) cdata->require_cs = 1;
             else if (strcmp(option, "xml") == 0) {}
             else {
 				jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Unsupported option '-k %s'.\nRun without arguments to see help.", option);
 				do_exit(1);
-            }                
+            }
             break;
 		case 's': {
 			/* <stopTime>\t Simulation stop time, default is to use information from 'DefaultExperiment'\n" */
@@ -258,7 +260,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
             cdata->inputFileName = argv[i];
             break;
          }
-        case 'm':{ /* "Print enums and booleans as integers (default is to print item names, true and false)." */            
+        case 'm':{ /* "Print enums and booleans as integers (default is to print item names, true and false)." */
             cdata->do_mangle_var_names = 1;
             break;
         }
@@ -276,14 +278,14 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 			if( jm_portability_get_current_working_directory(cwd, 9999) ||
                 jm_portability_set_current_working_directory(argv[i]) ||
 			    jm_portability_get_current_working_directory(cdata->unzipPathBuf, 9999) ||
-			    jm_portability_set_current_working_directory(cwd) 
+			    jm_portability_set_current_working_directory(cwd)
 				) {
 				clear_fmu_check_data(cdata, 1);
 				do_exit(1);
 			}
             cdata->unzipPath = cdata->unzipPathBuf;
             break;
-        }   
+        }
         default:
 			jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Unsupported command line option %s.\nRun without arguments to see help.", option);
 			do_exit(1);
@@ -317,7 +319,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		if(log_level == jm_log_level_debug) {
 			jm_log_verbose(&cdata->callbacks,fmu_checker_module,"This binary is build without debug log messages."
 			"\n Reconfigure with FMUCHK_ENABLE_LOG_LEVEL_DEBUG=ON and rebuild to enable debug level logging");
-		}	
+		}
 #endif
 	}
 	{
@@ -329,8 +331,8 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		}
 		fclose(tryFMU);
 	}
-    { 
-        
+    {
+
         if(cdata->inputFileName) {
             FILE* infile = fopen(cdata->inputFileName, "rb");
             if(infile) {
@@ -349,7 +351,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 		if(!cdata->temp_dir) cdata->temp_dir = "./";
 	}
     if(cdata->unzipPath) {
-        cdata->tmpPath = cdata->unzipPath;        
+        cdata->tmpPath = cdata->unzipPath;
     }
     else {
 		cdata->tmpPath = fmi_import_mk_temp_dir(&cdata->callbacks, cdata->temp_dir, "fmucktmp");
@@ -394,13 +396,13 @@ jm_status_enu_t checked_print_quoted_str(fmu_check_data_t* cdata, const char* st
 
 jm_status_enu_t checked_fprintf(fmu_check_data_t* cdata, const char* fmt, ...) {
 	jm_status_enu_t status = jm_status_success;
-	va_list args; 
-    va_start (args, fmt); 
+	va_list args;
+    va_start (args, fmt);
 	if(vfprintf(cdata->out_file, fmt, args) <= 0) {
 		jm_log_fatal(&cdata->callbacks, fmu_checker_module, "Error writing output file (%s)", strerror(errno));
 		status = jm_status_error;
 	}
-    va_end (args); 
+    va_end (args);
 	return status;
 }
 
@@ -409,7 +411,7 @@ jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn) 
     int need_quoting = 1;
     jm_status_enu_t status = jm_status_success;
    	char replace_sep = ':';
-	
+
 	if(cdata->CSV_separator == ':') {
 		replace_sep = '|';
 	}
@@ -434,9 +436,9 @@ jm_status_enu_t check_fprintf_var_name(fmu_check_data_t* cdata, const char* vn) 
         int j = 0;
         while(vn[j]) {
             char ch = vn[j];
-            if((ch == cdata->CSV_separator) 
-                || (ch == '"') 
-                || (ch == ' ') 
+            if((ch == cdata->CSV_separator)
+                || (ch == '"')
+                || (ch == ' ')
                 || (ch == '\n')
                 || (ch == '\t')
                 || (ch == '\r')) {
@@ -535,7 +537,7 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->fmu1 = 0;
 	cdata->fmu1_kind = fmi1_fmu_kind_enu_unknown;
 	cdata->vl = 0;
-    
+
     cdata->fmu2 = 0;
 	cdata->fmu2_kind = fmi2_fmu_kind_unknown;
     cdata->vl2 = 0;
@@ -549,7 +551,7 @@ void clear_fmu_check_data(fmu_check_data_t* cdata, int close_log) {
 			fmi1_free_input_data(&cdata->fmu1_inputData);
 		}
 		fmi1_import_free(cdata->fmu1);
-		cdata->fmu1 = 0;        
+		cdata->fmu1 = 0;
 	}
 	if(cdata->fmu2) {
 		if (cdata->do_simulate_flg) {
@@ -603,8 +605,8 @@ void prepare_time_step_info(fmu_check_data_t* cdata, double* timeEnd, double* ti
     else if(cdata->stepSizeSetByUser) {
         double nSteps;
         *timeStep = cdata->stepSize;
-        nSteps = ((*timeEnd)/(*timeStep));        
-        
+        nSteps = ((*timeEnd)/(*timeStep));
+
         if(nSteps > DEFAULT_NUM_STEPS) {
            cdata->numSteps = DEFAULT_NUM_STEPS;
         }
@@ -627,13 +629,49 @@ void prepare_time_step_info(fmu_check_data_t* cdata, double* timeEnd, double* ti
 
 fmu_check_data_t* cdata_global_ptr = 0;
 
+static int direxists(const char* dirname) {
+    struct stat s;
+    return stat(dirname, &s) == 0 && (S_IFDIR & s.st_mode);
+}
+
+static int check_dir_structure(fmu_check_data_t *cdata)
+{
+    char *bindir;
+    char *srcdir;
+    int is_valid = 0;
+
+    size_t pathlen = strlen(cdata->tmpPath);
+    size_t binlen = pathlen + strlen(FMI_FILE_SEP) + 8; /*strlen("binaries") == 8*/
+    size_t srclen = pathlen + strlen(FMI_FILE_SEP) + 7; /*strlen("sources") == 7*/
+
+    bindir = cdata->callbacks.calloc(binlen + 1, sizeof(char));
+    srcdir = cdata->callbacks.calloc(srclen + 1, sizeof(char));
+    if (bindir == NULL || srcdir == NULL) {
+        jm_log_fatal(&cdata->callbacks,
+                     fmu_checker_module,
+                     "Failed to allocate memory");
+        clear_fmu_check_data(cdata, 1);
+        do_exit(1);
+    }
+
+    jm_snprintf(bindir, binlen + 1, "%s" FMI_FILE_SEP "binaries", cdata->tmpPath);
+    jm_snprintf(srcdir, srclen + 1, "%s" FMI_FILE_SEP "sources", cdata->tmpPath);
+
+    is_valid = direxists(bindir) || direxists(srcdir);
+
+    cdata->callbacks.free(bindir);
+    cdata->callbacks.free(srcdir);
+
+    return is_valid;
+}
+
 int main(int argc, char *argv[])
 {
 	fmu_check_data_t cdata;
 	jm_status_enu_t status = jm_status_success;
 	jm_log_level_enu_t log_level = jm_log_level_info;
 	jm_callbacks* callbacks;
-	int i = 0;	
+	int i = 0;
     int cnt;
 	char clopts[JM_MAX_ERROR_MESSAGE_SIZE];
 
@@ -644,7 +682,7 @@ int main(int argc, char *argv[])
 #ifdef FMILIB_GENERATE_BUILD_STAMP
 	jm_log_debug(callbacks,fmu_checker_module,"FMIL build stamp:\n%s\n", fmilib_get_build_stamp());
 #endif
-	
+
 #ifdef FMILIB_ENABLE_LOG_LEVEL_DEBUG
 	jm_log_info(callbacks,fmu_checker_module,"FMI compliance checker " FMUCHK_VERSION " [FMILibrary: "FMIL_VERSION"] build date: "__DATE__ " "__TIME__);
 #else
@@ -672,6 +710,12 @@ int main(int argc, char *argv[])
 		do_exit(1);
 	}
 
+    if (!check_dir_structure(&cdata)) {
+        jm_log_error(&cdata.callbacks,
+                     fmu_checker_module,
+                     "FMU must contain either a \"sources\" or a \"binaries\" folder");
+    }
+
 	switch(cdata.version) {
 	case  fmi_version_1_enu:
 		status = fmi1_check(&cdata);
@@ -681,7 +725,7 @@ int main(int argc, char *argv[])
 		break;
 	default:
 		clear_fmu_check_data(&cdata, 1);
-		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 and 2.0 RC2 are supported so far");
+		jm_log_fatal(callbacks,fmu_checker_module,"Only FMI version 1.0 and 2.0 are supported so far");
 		do_exit(1);
 	}
 
@@ -695,7 +739,7 @@ int main(int argc, char *argv[])
 		}
 		else {
 			jm_log_error(callbacks,fmu_checker_module,
-				"Memory mamagement: freeMemory was called without allocateMemory for %d block(s)", 
+				"Memory mamagement: freeMemory was called without allocateMemory for %d block(s)",
 				-allocated_mem_blocks);
 		}
 	}
@@ -705,15 +749,15 @@ int main(int argc, char *argv[])
 	jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "FMU reported:\n\t%u warning(s) and error(s)\nChecker reported:", cdata.num_fmu_messages);
 
 	if(callbacks->log_level < jm_log_level_error) {
-		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, 
+		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing,
 			"\tWarnings and non-critical errors were ignored (log level: %s)", jm_log_level_to_string( callbacks->log_level ));
 	}
 	else {
 		if(callbacks->log_level < jm_log_level_warning) {
-			jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, 
+			jm_log(callbacks, fmu_checker_module, jm_log_level_nothing,
 				"\tWarnings were ignored (log level: %s)", jm_log_level_to_string( callbacks->log_level ));
 		}
-		else  
+		else
 		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\t%u Warning(s)", cdata.num_warnings);
 		if ((cdata.num_fatal > 0)) cdata.num_errors=cdata.num_errors+cdata.num_fatal;
 		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, "\t%u Error(s)", cdata.num_errors);
@@ -724,7 +768,7 @@ int main(int argc, char *argv[])
 		do_exit(0);
 	}
 	else {
-		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing, 
+		jm_log(callbacks, fmu_checker_module, jm_log_level_nothing,
 			"\t%u Fatal error(s) occurred during processing",cdata.num_fatal);
 		if(cdata.log_file && (cdata.log_file != stderr))
 			fclose(cdata.log_file);
