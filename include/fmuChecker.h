@@ -88,13 +88,14 @@ struct fmu_check_data_t {
 	double stepSize;
     /** Flag indicating if step size is user defined in command line */
     int stepSizeSetByUser;
-	/** Number of steps to take */
-#define DEFAULT_NUM_STEPS 500
-#define DEFAULT_NUM_STEPS_STR "500"
+    
+#define DEFAULT_MAX_OUTPUT_PTS 500
+#define DEFAULT_MAX_OUTPUT_PTS_STR "500"
 
-	size_t numSteps;
-    /** Flag indicating if number of steps is user defined in command line */
-    int numStepsSetByUser;
+    /** Maximum number of steps to save to output */
+    size_t maxOutputPts;
+    /** Flag indicating if max number of steps is user defined in command line */
+    int maxOutputPtsSetByUser;
     /** Next output time */
     double nextOutputTime;
     /** Next output step number*/

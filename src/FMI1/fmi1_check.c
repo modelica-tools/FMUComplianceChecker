@@ -341,13 +341,13 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 	char fmt_true[20];
 	char fmt_false[20];
 
-	if(cdata->numSteps > 0) {
+	if(cdata->maxOutputPts > 0) {
 		if(time < cdata->nextOutputTime) {
 			return jm_status_success;
 		}
 		else {
 			cdata->nextOutputStep++;
-			cdata->nextOutputTime = cdata->stopTime*cdata->nextOutputStep/cdata->numSteps;
+			cdata->nextOutputTime = cdata->stopTime*cdata->nextOutputStep/cdata->maxOutputPts;
 			if(cdata->nextOutputTime > cdata->stopTime) {
 				cdata->nextOutputTime = cdata->stopTime;
 			}

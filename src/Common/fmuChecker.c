@@ -105,7 +105,7 @@ void print_usage( ) {
         "-i <infile>\t Name of the CSV file name with input data.\n\n"
 		"-l <log level>\t Log level: 0 - no logging, 1 - fatal errors only,\n\t\t 2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug.\n\n"
         "-m\t\t Mangle variable names to avoid quoting (needed for some CSV\n\t\t importing applications, but not according to the CrossCheck rules).\n\n"
-		"-n <num_steps>\t Maximum number of output points. Zero means output\n\t\t in every step. Default is " DEFAULT_NUM_STEPS_STR ".\n\n"
+		"-n <num_steps>\t Maximum number of output points. Zero means output\n\t\t in every step. Default is " DEFAULT_MAX_OUTPUT_PTS_STR ".\n\n"
 		"-o <filename>\t Simulation result output CSV file name. Default is to use standard output.\n\n"
 		"-s <stopTime>\t Simulation stop time, default is to use information from\n\t\t'DefaultExperiment' as specified in the model description XML.\n\n"
 		"-t <tmp-dir>\t Temporary dir to use for unpacking the FMU.\n\t\t Default is to use system-wide directory, e.g., C:\\Temp or /tmp.\n\n"
@@ -203,7 +203,7 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
             cdata->stepSizeSetByUser = 1;
 			break;
 				   }
-		case 'n': {/*<num_steps>\t Maximum number of output points. Zero means output in every step. Default is " #DEFAULT_NUM_STEPS ".\n"*/
+		case 'n': {/*<num_steps>\t Maximum number of output points. Zero means output in every step. Default is " #DEFAULT_MAX_OUTPUT_PTS ".\n"*/
 			int n;
 			i++;
 			option = argv[i];
@@ -211,8 +211,8 @@ void parse_options(int argc, char *argv[], fmu_check_data_t* cdata) {
 				jm_log_fatal(&cdata->callbacks,fmu_checker_module,"Error parsing command line. Expected number of steps after '-n'.\nRun without arguments to see help.");
 				do_exit(1);
 			}
-			cdata->numSteps = (size_t)n;
-            cdata->numStepsSetByUser = 1;
+            cdata->maxOutputPts = (size_t)n;
+            cdata->maxOutputPtsSetByUser = 1;
 			break;
 				  }
 		case 'l': { /*log level>\t Log level: 0 - no logging, 1 - fatal errors only,\n\t 2 - errors, 3 - warnings, 4 - info, 5 - verbose, 6 - debug\n"*/
@@ -510,8 +510,8 @@ void init_fmu_check_data(fmu_check_data_t* cdata) {
 	cdata->stopTime = 0.0;
 	cdata->stepSize = 0.0;
     cdata->stepSizeSetByUser = 0;
-	cdata->numSteps = DEFAULT_NUM_STEPS;
-    cdata->numStepsSetByUser = 0;
+    cdata->maxOutputPts = DEFAULT_MAX_OUTPUT_PTS;
+    cdata->maxOutputPtsSetByUser = 0;
     cdata->nextOutputTime = 0.0;
     cdata->nextOutputStep = 0;
 	cdata->CSV_separator = ',';
@@ -599,31 +599,19 @@ void prepare_time_step_info(fmu_check_data_t* cdata, double* timeEnd, double* ti
         cdata->stopTime = *timeEnd;
     }
 
-    if(cdata->stepSizeSetByUser && cdata->numStepsSetByUser) {
+    if(cdata->stepSizeSetByUser) {
         *timeStep = cdata->stepSize;
     }
-    else if(cdata->stepSizeSetByUser) {
-        double nSteps;
-        *timeStep = cdata->stepSize;
-        nSteps = ((*timeEnd)/(*timeStep));
-
-        if(nSteps > DEFAULT_NUM_STEPS) {
-           cdata->numSteps = DEFAULT_NUM_STEPS;
+    else if(cdata->maxOutputPtsSetByUser) {
+        if(cdata->maxOutputPts) {
+            *timeStep = cdata->stopTime / cdata->maxOutputPts;
         }
         else {
-           cdata->numSteps = (size_t)nSteps;
-        }
-    }
-    else if(cdata->numStepsSetByUser) {
-        if(cdata->numSteps) {
-            *timeStep = cdata->stopTime / cdata->numSteps;
-        }
-        else {
-            *timeStep = cdata->stopTime / DEFAULT_NUM_STEPS;
+            *timeStep = cdata->stopTime / DEFAULT_MAX_OUTPUT_PTS;
         }
     }
     else {
-        *timeStep = cdata->stopTime / cdata->numSteps;
+        *timeStep = cdata->stopTime / cdata->maxOutputPts;
     }
 }
 
