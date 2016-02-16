@@ -149,13 +149,6 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 		int zero_crossning_event = 0;
 		int time_event = 0;
 
-        /* Set time */
-		jm_log_verbose(cb, fmu_checker_module, "Simulation time: %g", tcur);
-		if(  !fmi2_status_ok_or_warning(fmistatus = fmi2_import_set_time(fmu, tcur))) {
-			jm_log_fatal(cb, fmu_checker_module, "Could not set simulation time to %g", tcur);
-			break;
-		}
-
 		/* Get derivatives */
 		if( (n_states > 0) &&  !fmi2_status_ok_or_warning(fmistatus = fmi2_import_get_derivatives(fmu, states_der, n_states))) {
 			if(fmistatus != fmi2_status_discard)
@@ -188,6 +181,13 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 
 		hcur = tnext - tcur;
 		tcur = tnext;
+
+        /* Set time */
+        jm_log_verbose(cb, fmu_checker_module, "Simulation time: %g", tcur);
+        if (!fmi2_status_ok_or_warning(fmistatus = fmi2_import_set_time(fmu, tcur))) {
+            jm_log_fatal(cb, fmu_checker_module, "Could not set simulation time to %g", tcur);
+            break;
+        }
 
 		/* Set inputs */
 		if(!fmi2_status_ok_or_warning(fmistatus = fmi2_set_inputs(cdata, tcur))) {
