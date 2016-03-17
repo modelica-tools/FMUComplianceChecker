@@ -43,6 +43,11 @@ typedef struct fmi1_csv_input_t {
     size_t interpIndex2; /** second data element index for interpolation */
     double interpLambda; /** interpolation coefficient */
     fmi1_real_t* interpData; /** interpolated inputs */
+
+    /*input event check data*/
+    size_t eventIndex1; /** first data element index for interpolation */
+    size_t eventIndex2; /** first data element index for interpolation */
+
 } fmi1_csv_input_t;
 
 typedef struct fmu_check_data_t fmu_check_data_t;
@@ -62,4 +67,6 @@ fmi1_status_t fmi1_set_inputs(fmu_check_data_t* cdata, double time);
 /** read input data from the file */ 
 jm_status_enu_t fmi1_read_input_file( fmu_check_data_t* cdata);
 
+/** check input data interval for event trigger from data */
+jm_status_enu_t fmi1_check_external_events(fmi1_real_t tcur, fmi1_real_t tnext, fmi1_event_info_t* eventInfo, fmi1_csv_input_t* indata);
 #endif

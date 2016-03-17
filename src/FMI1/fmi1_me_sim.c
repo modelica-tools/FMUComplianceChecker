@@ -118,8 +118,15 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 
 		/* adjust tnext step to get tend exactly */ 
 		if(tnext > tend - hdef/1e16) {
-			tnext = tend;				
+			tnext = tend;
 		}
+
+        /*Check for eternal events*/
+        jmstatus = fmi1_check_external_events(tcur, tnext, &eventInfo, &cdata->fmu1_inputData);
+        if( jmstatus > jm_status_warning) {
+            jm_log_fatal(cb, fmu_checker_module, "Detection of input data events failed for Simtime %g", tcur);
+            break;
+        }
 
 		/* adjust for time events */ 
 		if (eventInfo.upcomingTimeEvent && (tnext >= eventInfo.nextEventTime)) {
