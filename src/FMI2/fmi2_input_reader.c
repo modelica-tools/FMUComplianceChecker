@@ -38,8 +38,10 @@ jm_status_enu_t fmi2_init_input_data(fmi2_csv_input_t* indata, jm_callbacks* cb,
 	err |= ((indata->intInputData  = jm_vector_alloc(jm_voidp)(0,100,cb)) == 0);
 	err |= ((indata->boolInputData = jm_vector_alloc(jm_voidp)(0,100,cb)) == 0);
 
-	indata->interpTime = 0;
-	indata->interpIndex1=indata->interpIndex2=0;
+    indata->interpTime = 0;
+    indata->discreteIndex = 0;
+    indata->interpIndex1 = 0;
+    indata->interpIndex2 = 0;
 	indata->interpLambda = 0.0;
 	indata->interpData = 0;
 
@@ -99,7 +101,7 @@ void fmi2_free_input_data(fmi2_csv_input_t* indata) {
 
 void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 	size_t i;
-	fmi2_variability_enu_t variability;
+	
 	if( (t == indata->interpTime) ||
 		!jm_vector_get_size(double)(&indata->timeStamps)) {
 			return;
@@ -108,12 +110,12 @@ void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 	indata->interpTime = t;
 	if(t <= jm_vector_get_item(double)(&indata->timeStamps,0)) {
 		/* handle extrapolation on the left */
-		indata->interpIndex1 = indata->interpIndex2 = 0;
+		indata->interpIndex1 = indata->interpIndex2 = indata->discreteIndex = 0;
 		indata->interpLambda = 0.0;
 	}
 	else if(t >= jm_vector_get_last(double)(&indata->timeStamps)) {
 		/* handle extrapolation on the right */
-		indata->interpIndex1 = indata->interpIndex2 
+		indata->interpIndex1 = indata->interpIndex2 = indata->discreteIndex
 			= jm_vector_get_size(double)(&indata->timeStamps) - 1;
 		indata->interpLambda = 1.0;
 	}
@@ -127,10 +129,11 @@ void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 		}
         if (t2 == t) {
             /* If we are exactly on the input time then use it for integers/booleans */
-            indata->interpIndex1 = indata->interpIndex2;
+            indata->discreteIndex = indata->interpIndex2;
         } else {
-            indata->interpIndex1 = indata->interpIndex2 - 1;
+            indata->discreteIndex = indata->interpIndex2 - 1;
         }
+        indata->interpIndex1 = indata->interpIndex2 - 1;
 		t1 = jm_vector_get_item(double)(&indata->timeStamps, indata->interpIndex1);
 		indata->interpLambda = (t - t1)/(t2 -t1);
 
@@ -138,14 +141,14 @@ void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 
 	for(i = 0; i < fmi2_import_get_variable_list_size(indata->realInputs); i++) {
 		fmi2_import_variable_t* v = fmi2_import_get_variable(indata->realInputs, i);
-		variability = fmi2_import_get_variability(v);
+		fmi2_variability_enu_t variability = fmi2_import_get_variability(v);
 		if (variability > fmi2_variability_enu_discrete){
 			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex1);
 			fmi2_real_t* v2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex2);
 			indata->interpData[i] = v1[i] * (1.0 - indata->interpLambda) + v2[i] * indata->interpLambda;
-		}
-		else{		/*discrete real, no interpolation*/
-			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex1);
+        } else {
+            /*discrete real, no interpolation*/
+			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->discreteIndex);
 			indata->interpData[i] =  *v1;
 		}
 	}
@@ -174,7 +177,7 @@ fmi2_status_t fmi2_set_inputs(fmu_check_data_t* cdata, double time) {
 		const fmi2_value_reference_t* bv = fmi2_import_get_value_referece_list(indata->boolInputs);
 		if(!bv) return fmi2_status_error;
 		fmiStatus = fmi2_import_set_boolean(cdata->fmu2, bv, fmi2_import_get_variable_list_size(indata->boolInputs), 
-			(const fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,indata->interpIndex1));
+            (const fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,indata->discreteIndex));
 	}
 	if(!fmi2_status_ok_or_warning(fmiStatus)) {
 		return fmiStatus;
@@ -184,7 +187,7 @@ fmi2_status_t fmi2_set_inputs(fmu_check_data_t* cdata, double time) {
 		const fmi2_value_reference_t* bv = fmi2_import_get_value_referece_list(indata->intInputs);
 		if(!bv) return fmi2_status_error;
 		fmiStatus = fmi2_import_set_integer(cdata->fmu2, bv, fmi2_import_get_variable_list_size(indata->intInputs), 
-			(const fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,indata->interpIndex1));
+            (const fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,indata->discreteIndex));
 	}
 
 	return fmiStatus;

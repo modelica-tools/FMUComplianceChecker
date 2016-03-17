@@ -48,6 +48,7 @@ typedef struct fmi2_csv_input_t {
     /** interpolation data for doubles. */
     /*  v[t] = v[i1]*lambda+v[i2](1-lambda) */
     double interpTime; /** time instance where the coeff is calculated */
+    size_t discreteIndex; /** current data element index for discrete inputs */
     size_t interpIndex1; /** first data element index for interpolation */
     size_t interpIndex2; /** second data element index for interpolation */
     double interpLambda; /** interpolation coefficient */
