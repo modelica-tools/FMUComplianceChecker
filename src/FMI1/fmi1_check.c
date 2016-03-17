@@ -107,23 +107,6 @@ jm_status_enu_t fmi1_check(fmu_check_data_t* cdata) {
 
 	jm_log_info(cb, fmu_checker_module,"FMU kind: %s", fmi1_fmu_kind_to_string(cdata->fmu1_kind));
 
-	cdata->vl = fmi1_import_get_variable_list_alphabetical_order(cdata->fmu1);
-
-	if(cdata->vl) {
-		size_t nv = fmi1_import_get_variable_list_size(cdata->vl);
-		size_t i;
-		for(i=1; i < nv;i++) {
-			fmi1_import_variable_t* v1 = fmi1_import_get_variable(cdata->vl, i-1);
-			fmi1_import_variable_t* v2 = fmi1_import_get_variable(cdata->vl, i);
-			if(strcmp(fmi1_import_get_variable_name(v1), fmi1_import_get_variable_name(v2)) == 0) {
-				jm_log_error(cb,fmu_checker_module, 
-					"Two variables with the same name %s found. This is not allowed.",
-					fmi1_import_get_variable_name(v1) );
-			}
-		}
-		fmi1_import_free_variable_list(cdata->vl);
-	}
-
 	cdata->vl = fmi1_import_get_variable_list(cdata->fmu1);
 
 	if(!cdata->vl) {

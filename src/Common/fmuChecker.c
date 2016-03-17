@@ -713,6 +713,7 @@ int main(int argc, char *argv[])
 	jm_log_info(callbacks,fmu_checker_module,"Will process FMU %s",cdata.FMUPath);
 
 	cdata.context = fmi_import_allocate_context(callbacks);
+    fmi_import_set_configuration(cdata.context, FMI_IMPORT_NAME_CHECK);
 
 	cdata.version = fmi_import_get_fmi_version(cdata.context, cdata.FMUPath, cdata.tmpPath);
 	if(cdata.version == fmi_version_unknown_enu) {
