@@ -515,8 +515,8 @@ jm_status_enu_t fmi2_check_external_events(fmi2_real_t tcur, fmi2_real_t tnext, 
         }
 
         if (jm_vector_get_size(double)(&indata->timeStamps) == timeIndex1 + 1) {
-            /* At last time index, finnished */
-            timeIndex1 = indata->eventIndex1 = timeIndex1;
+            /* At last time index, finished */
+            indata->eventIndex1 = timeIndex1;
             return jm_status_success;
         }
 
