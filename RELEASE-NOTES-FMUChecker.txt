@@ -7,10 +7,11 @@ Release notes for FMI Compliance Checker (FMUChecker) application.
  naming conventions.
  - External event check support added for FMI 1.0.
  - Improved documentation for the -n <numSteps> and -h <stepSize> options.
- - The checker confirms that an FMU contains either a "binaries" or "sources".
+ - The checker confirms that an FMU contains either a "binaries" or "sources"
+ folder.
  - A warning is logged if input variables have no start values.
  - A warning is given if no Capabilities element is found for CS 1.0 FMU.
- folder.
+
 - Bugfixes:
  - All discrete input values in a time step are checked for changes.
  - Steps that should be written to output is now written.
