@@ -1,6 +1,29 @@
 File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
 
+2016-03-22 Version 2.0.3b1
+- Feature updates:
+ - Variable names are checked to follow the syntax specified in the variable
+ naming conventions.
+ - External event check support added for FMI 1.0.
+ - Improved documentation for the -n <numSteps> and -h <stepSize> options.
+ - The checker confirms that an FMU contains either a "binaries" or "sources".
+ - A warning is logged if input variables have no start values.
+ - A warning is given if no Capabilities element is found for CS 1.0 FMU.
+ folder.
+- Bugfixes:
+ - All discrete input values in a time step are checked for changes.
+ - Steps that should be written to output is now written.
+ - Set time is called at the right time for ME 2.0.
+ - FMI 1.0 Integer/Enumeration attribute values are no longer overwritten.
+ - Assert error for empty String variables removed.
+ - Crash/assert error for empty ModelStructure tag fixed.
+
+2014-12-22 Version 2.0.2b1
+- Bugfixes:
+ - Corrected handling of quoted variable names in input CSV files.
+ - Fixed unmotivated warning when checking FMI 2.0 ME compliant FMUs.
+
 2014-10-24 Version 2.0.1
 - Feature updates:
   - Added call to Checker to logfile for improved documentation
