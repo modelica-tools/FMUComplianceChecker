@@ -1,7 +1,7 @@
 File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
 
-2016-03-22 Version 2.0.3b1
+2016-03-23 Version 2.0.3b1
 - Feature updates:
  - Variable names are checked to follow the syntax specified in the variable
  naming conventions.
