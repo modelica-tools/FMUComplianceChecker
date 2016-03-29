@@ -1,5 +1,5 @@
 #!/bin/bash -x
-FMUCHECKERVERSION=FMUChecker-2.0b3
+FMUCHECKERVERSION=FMUChecker-2.0.3b1
 # The script is used to create FMU checker executables for 4 different platforms
 # It is intended to be run from MSYS shell on Windows on a computer with
 #  the following installed:
@@ -7,33 +7,72 @@ FMUCHECKERVERSION=FMUChecker-2.0b3
 # 2. svn client
 # 3. 7zip
 # 4. MSVC + WinSDK for Win64 bit builds (check with cmake that those work)
+#    If Visual Studio 10 is used in Windows 7, WinSDK should be installed in the
+#    following way (the order is important):
+#        a. Microsoft Windows SDK for Windows 7.1
+#        b. Microsoft Visual Studio 2010 Service Pack 1
+#        c. Microsoft Visual C++ 2010 Service Pack 1 Compiler Update for the
+#           Windows SDK 7.1
 MSVC="Visual Studio 10"
 MSVC64="Visual Studio 10 Win64"
 X_7zip="/c/Program Files/7-Zip/7z"
 
-# 5. Access to Linux64 machine (e.g., VirtualBox with Ubuntu 64bit configured with host only network)
-#    adapter. The Ubuntu is expected to have:
-#    ssh  server with login without password setup
-LINUXHOST=iakov@192.168.56.101
+# 5. Access to Linux64 machine (e.g., VirtualBox with Ubuntu 64bit configured
+#    with host only network adapter). The Ubuntu is expected to have:
 #    svn
 #    cmake > 2.8.6
-#    g++ multiarch (support for -m32 for cross-build Linux32)
+#    g++ multiarch (support for -m32 for cross-build Linux32), which can be
+#        installed with:
+#            sudo apt-get install g++-multilib
+LINUXHOST=victor@192.168.56.101
+#    ssh server with login without password setup. If you don't have an ssh
+#        server installed, it can be installed with:
+#
+#            sudo apt-get install openssh-server
+#
+#        The ssh server can be set up to use keys instead of passwords with
+#        the MSYS shell in the following way:
+#
+#            ssh victor@192.168.56.101
+#            ssh-keygen -t dsa 
+#
+#        set the file to save the key to id_dsa and no passphrase. And then
+#        while still logged in to the linux machine:
+#
+#            mkdir .ssh
+#            chmod 700 .ssh
+#            cd .ssh
+#            touch authorized_keys
+#            chmod 600 authorized_keys
+#            cat ../id_dsa.pub >> authorized_keys
+#            rm ../id_dsa.pub
+#            exit
+#
+#         And then from the MSYS shell:
+#
+#            scp victor@192.168.56.101:~/id_dsa ~/.ssh
+#
+#         Try the ssh server setup in the following way (no password should be
+#         required):
+#
+#            ssh -v victor@192.168.56.101
+#
 # The build directory is always cleaned before use. Source directory is
-#  updated or check-out is done. Note that svn should know password for svn.modelon.se
-#  in order to check-out the checker.
+#  updated or check-out is done. Note that svn should know password for 
+#  svn.modelon.se/P533-FMIComplianceChecker in order to check-out the checker.
 SRCDIR=`pwd`/src
 BUILDDIR=`pwd`/build
-REMOTESRCDIR=/home/iakov/FMUCheckerBuild
+REMOTESRCDIR=/home/victor/FMUCheckerBuild
 REMOTEBUILDDIR=/tmp/FMUCheckerBuild
 
 # Almost no error checking in the script. So, please, read the output!
-FMUCHK_REPO="https://svn.modelon.se/P533-FMIComplianceChecker/tags/2.0b3"
+FMUCHK_REPO="https://svn.modelon.se/P533-FMIComplianceChecker/tags/2.0.3b1"
 # FMUCHK_REPO="https://svn.modelon.se/P533-FMIComplianceChecker/branches/2.0.x"
 # the build dir will be removed with rm -rf if RMBUILDDIR="YES"
-RMBUILDDIR="NO"
-##########################################################################################
+RMBUILDDIR="YES"
+################################################################################
 # NO MORE SETTINGS - RUNNING
-################################################################################################
+################################################################################
 # Get the sources
 mkdir $SRCDIR >& /dev/null
 pushd $SRCDIR
