@@ -4,6 +4,7 @@ Background information for FMI Compliance Checker (FMUChecker) application.
 For build instructions see: BUILD-FMUChecker.txt
 Licence information is provided in: LICENCE-FMUChecker.txt
 Acknowledgements for used software: ACKNOWLEDGEMENTS-FMUChecker.txt
+Instructions for how to make a release: RELEASE-NOTES-FMUChecker.txt
 
 The FMI Compliance Checker is intended for
 validation of FMU 1.0 and 2.0 compliance to the standard specification
