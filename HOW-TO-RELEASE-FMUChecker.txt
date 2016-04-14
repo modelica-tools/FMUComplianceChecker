@@ -10,5 +10,4 @@ Instructions for how to release FMI Compliance Checker (FMUChecker) application.
 6. Reset svn externals to point to FMILibrary trunk.
 7. Commit release to
    https://svn.fmi-standard.org/fmi/branches/public/Test_FMUs/Compliance-Checker/
-8. Send email to fmi-info@googlegroups.com and fmi-design@googlegroups.com to
-   announce the new release.
+8. Join the googlegroup fmi-design and announce the new release.
