@@ -62,10 +62,13 @@ void fmi1_free_input_data(fmi1_csv_input_t* indata);
 /** update the interpolation coefficients inside the input data */
 void fmi1_update_input_interpolation(fmi1_csv_input_t* indata, double t);
 
-/** set inputs on the fmu */ 
+/** set continuous inputs on the fmu */
+fmi1_status_t fmi1_set_continuous_inputs(fmu_check_data_t* cdata, double time);
+
+/** set all inputs on the fmu */
 fmi1_status_t fmi1_set_inputs(fmu_check_data_t* cdata, double time);
 
-/** read input data from the file */ 
+/** read input data from the file */
 jm_status_enu_t fmi1_read_input_file( fmu_check_data_t* cdata);
 
 /** check input data interval for event trigger from data */

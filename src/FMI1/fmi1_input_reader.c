@@ -153,11 +153,11 @@ void fmi1_update_input_interpolation(fmi1_csv_input_t* indata, double t) {
     }
 }
 
-fmi1_status_t fmi1_set_inputs(fmu_check_data_t* cdata, double time) {
+fmi1_status_t fmi1_set_continuous_inputs(fmu_check_data_t* cdata, double time) {
     fmi1_status_t fmiStatus = fmi1_status_ok;
     fmi1_csv_input_t* indata = &cdata->fmu1_inputData;
-    
-    if(!jm_vector_get_size(double)(&indata->timeStamps)) 
+
+    if (!jm_vector_get_size(double)(&indata->timeStamps))
         return fmi1_status_ok;
 
     fmi1_update_input_interpolation(indata, time);
@@ -165,17 +165,28 @@ fmi1_status_t fmi1_set_inputs(fmu_check_data_t* cdata, double time) {
     if(indata->realInputData && fmi1_import_get_variable_list_size(indata->realInputs)) {
         const fmi1_value_reference_t* bv = fmi1_import_get_value_referece_list(indata->realInputs);
         if(!bv) return fmi1_status_error;
-        fmiStatus = fmi1_import_set_real(cdata->fmu1, bv, fmi1_import_get_variable_list_size(indata->realInputs), 
+        fmiStatus = fmi1_import_set_real(cdata->fmu1, bv, fmi1_import_get_variable_list_size(indata->realInputs),
                         indata->interpData);
     }
-    if(!fmi1_status_ok_or_warning(fmiStatus)) {
+    return fmiStatus;
+}
+
+fmi1_status_t fmi1_set_inputs(fmu_check_data_t* cdata, double time) {
+    fmi1_status_t fmiStatus;
+    fmi1_csv_input_t* indata = &cdata->fmu1_inputData;
+
+    if(!jm_vector_get_size(double)(&indata->timeStamps))
+        return fmi1_status_ok;
+
+    fmiStatus = fmi1_set_continuous_inputs(cdata, time);
+    if (!fmi1_status_ok_or_warning(fmiStatus)) {
         return fmiStatus;
     }
 
     if(indata->boolInputData && fmi1_import_get_variable_list_size(indata->boolInputs)) {
         const fmi1_value_reference_t* bv = fmi1_import_get_value_referece_list(indata->boolInputs);
         if(!bv) return fmi1_status_error;
-        fmiStatus = fmi1_import_set_boolean(cdata->fmu1, bv, fmi1_import_get_variable_list_size(indata->boolInputs), 
+        fmiStatus = fmi1_import_set_boolean(cdata->fmu1, bv, fmi1_import_get_variable_list_size(indata->boolInputs),
                         (const fmi1_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,indata->discreteIndex));
     }
     if(!fmi1_status_ok_or_warning(fmiStatus)) {
@@ -185,7 +196,7 @@ fmi1_status_t fmi1_set_inputs(fmu_check_data_t* cdata, double time) {
     if(indata->intInputData && fmi1_import_get_variable_list_size(indata->intInputs)) {
         const fmi1_value_reference_t* bv = fmi1_import_get_value_referece_list(indata->intInputs);
         if(!bv) return fmi1_status_error;
-        fmiStatus = fmi1_import_set_integer(cdata->fmu1, bv, fmi1_import_get_variable_list_size(indata->intInputs), 
+        fmiStatus = fmi1_import_set_integer(cdata->fmu1, bv, fmi1_import_get_variable_list_size(indata->intInputs),
                         (const fmi1_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,indata->discreteIndex));
     }
 
@@ -264,9 +275,9 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
                             fclose(infile);
                             jm_log_error(&cdata->callbacks, fmu_checker_module, "Expected CR+LF or just LF as end of line in input file. Got: CR+[%X]",buf);
                             return jm_status_error;
-                        }   
+                        }
                     }
-                    continue;                        
+                    continue;
                 }
                 else {
                     fclose(infile);
@@ -308,7 +319,7 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
             }
             causality = fmi1_import_get_causality(v);
             variability = fmi1_import_get_variability(v);
-            if( !( ( variability == fmi1_variability_enu_parameter) 
+            if( !( ( variability == fmi1_variability_enu_parameter)
                 || ( causality == fmi1_causality_enu_input)
                 )
               ) {
@@ -337,7 +348,7 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
         }
         if(buf != '\n') buf = fgetc(infile);
     }
-    if( 
+    if(
         !(indata->interpData = (fmi1_real_t*)malloc(sizeof(fmi1_real_t) * fmi1_import_get_variable_list_size(indata->realInputs))) ||
         (fmi1_import_get_variable_list_size(indata->allInputs) !=
         fmi1_import_get_variable_list_size(indata->realInputs)+
@@ -385,8 +396,8 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
         *(fmi1_integer_t**)jm_vector_get_lastp(jm_voidp)(indata->intInputData) = intData;
         *(fmi1_boolean_t**)jm_vector_get_lastp(jm_voidp)(indata->boolInputData) = boolData;
 
-        for(varCnt = realVarCnt = intVarCnt = boolVarCnt = 0; 
-            varCnt < fmi1_import_get_variable_list_size(indata->allInputs); 
+        for(varCnt = realVarCnt = intVarCnt = boolVarCnt = 0;
+            varCnt < fmi1_import_get_variable_list_size(indata->allInputs);
             varCnt++) {
             fmi1_import_variable_t* v = fmi1_import_get_variable(indata->allInputs, varCnt);
             fmi1_base_type_enu_t type = fmi1_import_get_variable_base_type(v);
@@ -397,7 +408,7 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
                 break;
             }
             switch(type) {
-            case fmi1_base_type_real: 
+            case fmi1_base_type_real:
                 {
                     double dbl;
                     err = (fscanf(infile,"%lg",&dbl) != 1);
@@ -407,7 +418,7 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
                 }
 
             case fmi1_base_type_int:
-            case fmi1_base_type_enum: 
+            case fmi1_base_type_enum:
                 {
                     int intbuf;
                     err = (fscanf(infile,"%d",&intbuf) != 1);
@@ -415,7 +426,7 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
                     intData[intVarCnt++] = intbuf;
                     break;
                 }
-            case fmi1_base_type_bool: 
+            case fmi1_base_type_bool:
                 {
                     int intbuf;
                     err = (fscanf(infile,"%d",&intbuf) != 1) || (intbuf != 0) && (intbuf != 1);

@@ -136,7 +136,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 			jm_log_fatal(cb, fmu_checker_module, "Could not set simulation time to %g", tcur);
 			break;
 		}
-        if(    !fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tcur))) {
+		if (!fmi1_status_ok_or_warning(fmistatus = fmi1_set_continuous_inputs(cdata, tcur))) {
 			jm_log_fatal(cb, fmu_checker_module, "Could not set inputs");
 			break;
 		}
