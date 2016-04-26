@@ -102,7 +102,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 	else while ((tcur < tend) && fmi1_status_ok_or_warning(fmistatus) ) {
 		size_t k;
 		int zero_crossning_event = 0;
-		int time_event = 0;
+		int external_event = 0;
 
 		/* Get derivatives */
 		if( (n_states > 0) &&  !fmi1_status_ok_or_warning(fmistatus = fmi1_import_get_derivatives(fmu, states_der, n_states))) {
@@ -126,7 +126,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 		/* adjust for time events */
 		if (eventInfo.upcomingTimeEvent && (tnext >= eventInfo.nextEventTime)) {
 			tnext = eventInfo.nextEventTime;
-			time_event = 1;
+			external_event = 1;
 		}
 
 		hcur = tnext - tcur;
@@ -175,7 +175,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 		}
 
 		/* Handle events */
-		if (callEventUpdate || zero_crossning_event || time_event) {
+		if (callEventUpdate || zero_crossning_event || external_event) {
 			const char* eventKind;
 			if(callEventUpdate) eventKind = "step";
 			else if(zero_crossning_event) eventKind = "state";
@@ -190,42 +190,42 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 			}
 
 			/* Entering the setInputs state */
-			/* A time event indicates a change in discrete variables */
-			if (time_event) {
+			/* An external event indicates a change in discrete input variables */
+			if (external_event) {
 				/* Update the discrete inputs to their new values. The rest of
 				 * the inputs are also updated. */
-				 if(!fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tnext))) {
+				 if (!fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tnext))) {
 					 jm_log_fatal(cb, fmu_checker_module, "Could not set inputs");
 					 break;
 				 }
 			}
-
 			eventInfo.iterationConverged = fmi1_false;
-			if(!fmi1_status_ok_or_warning(fmistatus = fmi1_import_eventUpdate(fmu, intermediateResults, &eventInfo))) {
+			if (!fmi1_status_ok_or_warning(fmistatus = fmi1_import_eventUpdate(fmu, intermediateResults, &eventInfo))) {
 				jm_log_fatal(cb, fmu_checker_module, "Event update call failed");
 				break;
 			}
 
-			/* Entering the eventPending state */
-			while (eventInfo.iterationConverged == fmi1_false) {
-				/* Update continuous states */
-				fmistatus = fmi1_import_get_continuous_states(fmu, states, n_states);
-				if (eventInfo.stateValuesChanged && !fmi1_status_ok_or_warning(fmistatus)) {
-					jm_log_fatal(cb, fmu_checker_module, "Could not get continuous states");
-					break;
-				}
-				/* Get event indicators */
-				fmistatus = fmi1_import_get_event_indicators(fmu, event_indicators_prev, n_event_indicators);
-				if ((n_event_indicators > 0) && !fmi1_status_ok_or_warning(fmistatus)) {
-					jm_log_fatal(cb, fmu_checker_module, "Could not get event indicators");
-					break;
-				}
-				/* Update the event information */
-				fmistatus = fmi1_import_eventUpdate(fmu, intermediateResults, &eventInfo);
-				if (!fmi1_status_ok_or_warning(fmistatus)) {
-					jm_log_fatal(cb, fmu_checker_module, "Event update call failed");
-					break;
-				}
+			/* Entering the eventPending state.
+			 * Since intermediateResults is set to fmi1_false we do not need to
+			 * iterate until the iteration converges as specified for the
+			 * eventPending state.
+			 */
+			if (!eventInfo.iterationConverged) {
+				jm_log_fatal(cb, fmu_checker_module, "FMU could not converge in event update");
+				jmstatus = jm_status_error;
+				break;
+			}
+			/* Update continuous states */
+			fmistatus = fmi1_import_get_continuous_states(fmu, states, n_states);
+			if (eventInfo.stateValuesChanged && !fmi1_status_ok_or_warning(fmistatus)) {
+				jm_log_fatal(cb, fmu_checker_module, "Could not get continuous states");
+				break;
+			}
+			/* Get event indicators */
+			fmistatus = fmi1_import_get_event_indicators(fmu, event_indicators_prev, n_event_indicators);
+			if ((n_event_indicators > 0) && !fmi1_status_ok_or_warning(fmistatus)) {
+				jm_log_fatal(cb, fmu_checker_module, "Could not get event indicators");
+				break;
 			}
 		}
 
