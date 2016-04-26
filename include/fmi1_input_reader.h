@@ -30,6 +30,9 @@ typedef struct fmi1_csv_input_t {
     fmi1_import_variable_list_t* realInputs;
     jm_vector(jm_voidp)* realInputData;
 
+    /* a subset of realInputs */
+    fmi1_import_variable_list_t *continuousInputs;
+
     fmi1_import_variable_list_t* intInputs;
     jm_vector(jm_voidp)* intInputData;
 
@@ -44,6 +47,7 @@ typedef struct fmi1_csv_input_t {
     size_t interpIndex2; /** second data element index for interpolation */
     double interpLambda; /** interpolation coefficient */
     fmi1_real_t* interpData; /** interpolated inputs */
+    fmi1_real_t* interpContinuousData; /** interpolated continuous inputs */
 
     /*input event check data*/
     size_t eventIndex1; /** first data element index for interpolation */

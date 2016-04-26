@@ -31,6 +31,7 @@ jm_status_enu_t fmi1_init_input_data(fmi1_csv_input_t* indata, jm_callbacks* cb,
     indata->numTimeStamps = 0;
     err = ((indata->allInputs = fmi1_import_alloc_variable_list(fmu, 0)) == 0);
     err |= ((indata->realInputs = fmi1_import_alloc_variable_list(fmu, 0)) == 0);
+    err |= ((indata->continuousInputs = fmi1_import_alloc_variable_list(fmu, 0)) == 0);
     err |= ((indata->intInputs = fmi1_import_alloc_variable_list(fmu, 0)) == 0);
     err |= ((indata->boolInputs = fmi1_import_alloc_variable_list(fmu, 0)) == 0);
 
@@ -44,6 +45,7 @@ jm_status_enu_t fmi1_init_input_data(fmi1_csv_input_t* indata, jm_callbacks* cb,
     indata->interpIndex2 = 0;
     indata->interpLambda = 0.0;
     indata->interpData = 0;
+    indata->interpContinuousData = 0;
 
     indata->eventIndex1 = indata->eventIndex2 = 0;
 
@@ -95,12 +97,17 @@ void fmi1_free_input_data(fmi1_csv_input_t* indata) {
     }
     fmi1_import_free_variable_list(indata->realInputs);
     indata->realInputs = 0;
+    fmi1_import_free_variable_list(indata->continuousInputs);
+    indata->continuousInputs = 0;
     free(indata->interpData);
     indata->interpData = 0;
+    free(indata->interpContinuousData);
+    indata->interpContinuousData = 0;
 }
 
 void fmi1_update_input_interpolation(fmi1_csv_input_t* indata, double t) {
     size_t i;
+    size_t cont_i;
     if( (t == indata->interpTime) ||
         !jm_vector_get_size(double)(&indata->timeStamps)) {
             return;
@@ -135,16 +142,16 @@ void fmi1_update_input_interpolation(fmi1_csv_input_t* indata, double t) {
         indata->interpIndex1 = indata->interpIndex2 - 1;
         t1 = jm_vector_get_item(double)(&indata->timeStamps, indata->interpIndex1);
         indata->interpLambda = (t - t1)/(t2 -t1);
-
     }
 
-    for(i = 0; i < fmi1_import_get_variable_list_size(indata->realInputs); i++) {
+    for (i = cont_i = 0; i < fmi1_import_get_variable_list_size(indata->realInputs); i++) {
         fmi1_import_variable_t* v = fmi1_import_get_variable(indata->realInputs, i);
         fmi1_variability_enu_t variability = fmi1_import_get_variability(v);
-        if (variability > fmi1_variability_enu_discrete){
+        if (variability == fmi1_variability_enu_continuous) {
             fmi1_real_t* v1 = (fmi1_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex1);
             fmi1_real_t* v2 = (fmi1_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex2);
             indata->interpData[i] = v1[i] * (1.0 - indata->interpLambda) + v2[i] * indata->interpLambda;
+            indata->interpContinuousData[cont_i++] = indata->interpData[i];
         } else {
             /*discrete real, no interpolation*/
             fmi1_real_t* v1 = (fmi1_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->discreteIndex);
@@ -162,23 +169,31 @@ fmi1_status_t fmi1_set_continuous_inputs(fmu_check_data_t* cdata, double time) {
 
     fmi1_update_input_interpolation(indata, time);
 
+    if (indata->realInputData && fmi1_import_get_variable_list_size(indata->continuousInputs)) {
+        const fmi1_value_reference_t* bv = fmi1_import_get_value_referece_list(indata->continuousInputs);
+        if(!bv) return fmi1_status_error;
+        fmiStatus = fmi1_import_set_real(cdata->fmu1, bv,
+                   fmi1_import_get_variable_list_size(indata->continuousInputs),
+                   indata->interpContinuousData);
+    }
+    return fmiStatus;
+}
+
+fmi1_status_t fmi1_set_inputs(fmu_check_data_t* cdata, double time) {
+    fmi1_status_t fmiStatus = fmi1_status_ok;
+    fmi1_csv_input_t* indata = &cdata->fmu1_inputData;
+
+    if (!jm_vector_get_size(double)(&indata->timeStamps))
+        return fmi1_status_ok;
+
+    fmi1_update_input_interpolation(indata, time);
+
     if(indata->realInputData && fmi1_import_get_variable_list_size(indata->realInputs)) {
         const fmi1_value_reference_t* bv = fmi1_import_get_value_referece_list(indata->realInputs);
         if(!bv) return fmi1_status_error;
         fmiStatus = fmi1_import_set_real(cdata->fmu1, bv, fmi1_import_get_variable_list_size(indata->realInputs),
                         indata->interpData);
     }
-    return fmiStatus;
-}
-
-fmi1_status_t fmi1_set_inputs(fmu_check_data_t* cdata, double time) {
-    fmi1_status_t fmiStatus;
-    fmi1_csv_input_t* indata = &cdata->fmu1_inputData;
-
-    if(!jm_vector_get_size(double)(&indata->timeStamps))
-        return fmi1_status_ok;
-
-    fmiStatus = fmi1_set_continuous_inputs(cdata, time);
     if (!fmi1_status_ok_or_warning(fmiStatus)) {
         return fmiStatus;
     }
@@ -319,11 +334,9 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
             }
             causality = fmi1_import_get_causality(v);
             variability = fmi1_import_get_variability(v);
-            if( !( ( variability == fmi1_variability_enu_parameter)
-                || ( causality == fmi1_causality_enu_input)
-                )
-              ) {
-                      fclose(infile);
+            if (!((variability == fmi1_variability_enu_parameter)
+                    || (causality == fmi1_causality_enu_input))) {
+                fclose(infile);
                 jm_log_error(&cdata->callbacks, fmu_checker_module, "Variables in the input file must be either parameters or inputs. '%s' is neither.", namebuffer);
                 return jm_status_error;
             }
@@ -331,6 +344,9 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
             switch(type) {
                 case fmi1_base_type_real:
                     fmi1_import_var_list_push_back(indata->realInputs,v);
+                    if (variability == fmi1_variability_enu_continuous) {
+                        fmi1_import_var_list_push_back(indata->continuousInputs, v);
+                    }
                     break;
                 case fmi1_base_type_int:
                 case fmi1_base_type_enum:
@@ -350,6 +366,7 @@ jm_status_enu_t fmi1_read_input_file(fmu_check_data_t* cdata) {
     }
     if(
         !(indata->interpData = (fmi1_real_t*)malloc(sizeof(fmi1_real_t) * fmi1_import_get_variable_list_size(indata->realInputs))) ||
+        !(indata->interpContinuousData = (fmi1_real_t*)malloc(sizeof(fmi1_real_t) * fmi1_import_get_variable_list_size(indata->continuousInputs))) ||
         (fmi1_import_get_variable_list_size(indata->allInputs) !=
         fmi1_import_get_variable_list_size(indata->realInputs)+
         fmi1_import_get_variable_list_size(indata->intInputs)+
