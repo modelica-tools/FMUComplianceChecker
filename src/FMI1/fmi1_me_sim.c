@@ -102,7 +102,8 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 	else while ((tcur < tend) && fmi1_status_ok_or_warning(fmistatus) ) {
 		size_t k;
 		int zero_crossning_event = 0;
-		int external_event = 0;
+		int time_event = 0;
+		int external_time_event = 0;
 
 		/* Get derivatives */
 		if( (n_states > 0) &&  !fmi1_status_ok_or_warning(fmistatus = fmi1_import_get_derivatives(fmu, states_der, n_states))) {
@@ -116,20 +117,32 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 			tnext = tend;
 		}
 
-        /*Check for external events*/
-        jmstatus = fmi1_check_external_events(tcur, tnext, &eventInfo, &cdata->fmu1_inputData);
-        if( jmstatus > jm_status_warning) {
-            jm_log_fatal(cb, fmu_checker_module, "Detection of input data events failed for Simtime %g", tcur);
-            break;
-        }
-
 		/* adjust for time events */
 		if (eventInfo.upcomingTimeEvent && (tnext >= eventInfo.nextEventTime)) {
 			tnext = eventInfo.nextEventTime;
-			external_event = 1;
+			time_event = 1;
 		}
 
+        /* Check for external events */
+        {
+            fmi1_event_info_t externalEventInfo;
+
+            externalEventInfo.upcomingTimeEvent = fmi1_false;
+            jmstatus = fmi1_check_external_events(tcur, tnext, &externalEventInfo, &cdata->fmu1_inputData);
+            if( jmstatus > jm_status_warning) {
+                jm_log_fatal(cb, fmu_checker_module, "Detection of input data events failed for Simtime %g", tcur);
+                break;
+            }
+
+            /* adjust for external time events */
+            if (externalEventInfo.upcomingTimeEvent && (tnext >= externalEventInfo.nextEventTime)) {
+                tnext = externalEventInfo.nextEventTime;
+                external_time_event = 1;
+            }
+        }
+
 		hcur = tnext - tcur;
+		tcur = tnext;
 
 		jm_log_verbose(cb, fmu_checker_module, "Simulation time: %g", tcur);
 		if(    !fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_time(fmu, tcur))) {
@@ -175,7 +188,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 		}
 
 		/* Handle events */
-		if (callEventUpdate || zero_crossning_event || external_event) {
+		if (callEventUpdate || zero_crossning_event || time_event || external_time_event) {
 			const char* eventKind;
 			if(callEventUpdate) eventKind = "step";
 			else if(zero_crossning_event) eventKind = "state";
@@ -191,13 +204,13 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 
 			/* Entering the setInputs state */
 			/* An external event indicates a change in discrete input variables */
-			if (external_event) {
+			if (external_time_event) {
 				/* Update the discrete inputs to their new values. The rest of
 				 * the inputs are also updated. */
-				 if (!fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tnext))) {
-					 jm_log_fatal(cb, fmu_checker_module, "Could not set inputs");
-					 break;
-				 }
+				if (!fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tcur))) {
+					jm_log_fatal(cb, fmu_checker_module, "Could not set inputs");
+					break;
+				}
 			}
 			eventInfo.iterationConverged = fmi1_false;
 			if (!fmi1_status_ok_or_warning(fmistatus = fmi1_import_eventUpdate(fmu, intermediateResults, &eventInfo))) {
@@ -238,9 +251,6 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 			jm_log_info(cb, fmu_checker_module, "FMU requested simulation termination");
 			break;
 		}
-
-		/* advance time */
-		tcur = tnext;
 	} /* while */
 
 	if(!fmi1_status_ok_or_warning(fmistatus)) {
