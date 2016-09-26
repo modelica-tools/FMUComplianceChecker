@@ -38,8 +38,10 @@ jm_status_enu_t fmi2_init_input_data(fmi2_csv_input_t* indata, jm_callbacks* cb,
 	err |= ((indata->intInputData  = jm_vector_alloc(jm_voidp)(0,100,cb)) == 0);
 	err |= ((indata->boolInputData = jm_vector_alloc(jm_voidp)(0,100,cb)) == 0);
 
-	indata->interpTime = 0;
-	indata->interpIndex1=indata->interpIndex2=0;
+    indata->interpTime = 0;
+    indata->discreteIndex = 0;
+    indata->interpIndex1 = 0;
+    indata->interpIndex2 = 0;
 	indata->interpLambda = 0.0;
 	indata->interpData = 0;
 
@@ -99,7 +101,7 @@ void fmi2_free_input_data(fmi2_csv_input_t* indata) {
 
 void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 	size_t i;
-	fmi2_variability_enu_t variability;
+	
 	if( (t == indata->interpTime) ||
 		!jm_vector_get_size(double)(&indata->timeStamps)) {
 			return;
@@ -108,12 +110,12 @@ void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 	indata->interpTime = t;
 	if(t <= jm_vector_get_item(double)(&indata->timeStamps,0)) {
 		/* handle extrapolation on the left */
-		indata->interpIndex1 = indata->interpIndex2 = 0;
+		indata->interpIndex1 = indata->interpIndex2 = indata->discreteIndex = 0;
 		indata->interpLambda = 0.0;
 	}
 	else if(t >= jm_vector_get_last(double)(&indata->timeStamps)) {
 		/* handle extrapolation on the right */
-		indata->interpIndex1 = indata->interpIndex2 
+		indata->interpIndex1 = indata->interpIndex2 = indata->discreteIndex
 			= jm_vector_get_size(double)(&indata->timeStamps) - 1;
 		indata->interpLambda = 1.0;
 	}
@@ -125,7 +127,13 @@ void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 			indata->interpIndex2++;
 			t2 = jm_vector_get_item(double)(&indata->timeStamps, indata->interpIndex2);
 		}
-		indata->interpIndex1 = indata->interpIndex2 - 1;
+        if (t2 == t) {
+            /* If we are exactly on the input time then use it for integers/booleans */
+            indata->discreteIndex = indata->interpIndex2;
+        } else {
+            indata->discreteIndex = indata->interpIndex2 - 1;
+        }
+        indata->interpIndex1 = indata->interpIndex2 - 1;
 		t1 = jm_vector_get_item(double)(&indata->timeStamps, indata->interpIndex1);
 		indata->interpLambda = (t - t1)/(t2 -t1);
 
@@ -133,14 +141,14 @@ void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 
 	for(i = 0; i < fmi2_import_get_variable_list_size(indata->realInputs); i++) {
 		fmi2_import_variable_t* v = fmi2_import_get_variable(indata->realInputs, i);
-		variability = fmi2_import_get_variability(v);
+		fmi2_variability_enu_t variability = fmi2_import_get_variability(v);
 		if (variability > fmi2_variability_enu_discrete){
 			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex1);
 			fmi2_real_t* v2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex2);
 			indata->interpData[i] = v1[i] * (1.0 - indata->interpLambda) + v2[i] * indata->interpLambda;
-		}
-		else{		/*discrete real, no interpolation*/
-			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex1);
+        } else {
+            /*discrete real, no interpolation*/
+			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->discreteIndex);
 			indata->interpData[i] =  *v1;
 		}
 	}
@@ -169,7 +177,7 @@ fmi2_status_t fmi2_set_inputs(fmu_check_data_t* cdata, double time) {
 		const fmi2_value_reference_t* bv = fmi2_import_get_value_referece_list(indata->boolInputs);
 		if(!bv) return fmi2_status_error;
 		fmiStatus = fmi2_import_set_boolean(cdata->fmu2, bv, fmi2_import_get_variable_list_size(indata->boolInputs), 
-			(const fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,indata->interpIndex1));
+            (const fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,indata->discreteIndex));
 	}
 	if(!fmi2_status_ok_or_warning(fmiStatus)) {
 		return fmiStatus;
@@ -179,7 +187,7 @@ fmi2_status_t fmi2_set_inputs(fmu_check_data_t* cdata, double time) {
 		const fmi2_value_reference_t* bv = fmi2_import_get_value_referece_list(indata->intInputs);
 		if(!bv) return fmi2_status_error;
 		fmiStatus = fmi2_import_set_integer(cdata->fmu2, bv, fmi2_import_get_variable_list_size(indata->intInputs), 
-			(const fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,indata->interpIndex1));
+            (const fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,indata->discreteIndex));
 	}
 
 	return fmiStatus;
@@ -436,73 +444,95 @@ jm_status_enu_t fmi2_read_input_file(fmu_check_data_t* cdata) {
 	return jm_status_success;
 }
 
-jm_status_enu_t fmi2_check_external_events(fmi2_real_t tcur, fmi2_real_t tnext,fmi2_event_info_t* eventInfo,fmi2_csv_input_t* indata){
-	size_t numberOfBools, numberOfInt, numberOfReals,cnt;
-	fmi2_integer_t* i1;
-	fmi2_integer_t* i2;
-	fmi2_real_t* r1;
-	fmi2_real_t* r2;
-	fmi2_import_variable_t* v;
+/** Local helper function, checks if it makes seens to look for external events */
+static int fmi2_not_possible_to_have_external_event(fmi2_real_t tcur, fmi2_real_t tnext, fmi2_csv_input_t* indata) {
+    return jm_vector_get_size(double)(&indata->timeStamps) < 2             ||
+           tnext <= jm_vector_get_item(double)(&indata->timeStamps, 0)     ||
+           tcur  >= jm_vector_get_last(double)(&indata->timeStamps);
+}
 
-	if(!jm_vector_get_size(double)(&indata->timeStamps)) return jm_status_success;
+jm_status_enu_t fmi2_check_external_events(fmi2_real_t tcur, fmi2_real_t tnext, fmi2_event_info_t* eventInfo, fmi2_csv_input_t* indata){
+    size_t numberOfBools, numberOfInt, numberOfReals, cnt, timeIndex1;
+    double t1;
+    fmi2_integer_t *i1, *i2;
+    fmi2_real_t *r1, *r2;
+    fmi2_boolean_t *b1, *b2;
 
-	if(tnext <= jm_vector_get_item(double)(&indata->timeStamps,0)) {
-		return jm_status_success;
-	}
-	else if(tcur >= jm_vector_get_last(double)(&indata->timeStamps)) {
-		return jm_status_success;
-	}
-	else {
-		size_t timeIndex1=indata->eventIndex1;
-		double t1 = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1);
-		while( t1 < tcur) {
-			timeIndex1++;
-			t1 = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1);
-		}
-		if (timeIndex1 == 0 || tnext <	jm_vector_get_item(double)(&indata->timeStamps, timeIndex1)){
-			return jm_status_success;
-		}
-		else {
-			/*boolean*/
-			fmi2_boolean_t* b1 = (fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,timeIndex1-1);
-			fmi2_boolean_t* b2 = (fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,timeIndex1);
-			numberOfBools = fmi2_import_get_variable_list_size(indata->boolInputs);
-			for (cnt=0;cnt<numberOfBools;cnt++){
-				if (b1[cnt] != b2[cnt]){
-					tnext = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1+1);
-					eventInfo->nextEventTimeDefined = fmi2_true;
-					eventInfo->nextEventTime = tnext;
-					return jm_status_success;
-				}
-			}
-			/*integer*/
-			i1 = (fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,timeIndex1-1);
-			i2 = (fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,timeIndex1);
-			numberOfInt = fmi2_import_get_variable_list_size(indata->intInputs);
-			for (cnt=0;cnt<numberOfInt;cnt++){
-				if (i1[cnt] != i2[cnt]){
-					tnext = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1+1);
-					eventInfo->nextEventTimeDefined = fmi2_true;
-					eventInfo->nextEventTime = tnext;
-					return jm_status_success;
-				}
-			}
-			/*discrete real*/
-			r1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,timeIndex1-1);
-			r2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,timeIndex1);
-			numberOfReals = fmi2_import_get_variable_list_size(indata->realInputs);
-			v = fmi2_import_get_variable(indata->realInputs, cnt);
-			for (cnt=0;cnt<numberOfReals;cnt++){
-				fmi2_import_variable_t* v = fmi2_import_get_variable(indata->realInputs, cnt);
-				if ((r1[cnt] != r2[cnt]) && (fmi2_import_get_causality(v) == fmi2_variability_enu_discrete)){
-					tnext = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1+1);
-					eventInfo->nextEventTimeDefined = fmi2_true;
-					eventInfo->nextEventTime = tnext;
-					return jm_status_success;
-				}
-			}
-			timeIndex1=indata->eventIndex1=timeIndex1-1;
-			return jm_status_success;
-		}
-	}
+    if (fmi2_not_possible_to_have_external_event(tcur, tnext, indata)) {
+        return jm_status_success;
+    }
+
+    timeIndex1 = indata->eventIndex1;
+    if (timeIndex1 == 0) timeIndex1++; /* Need a previous value to check against */
+    t1 = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1);
+
+    /* Loop until we find a time after the current time */
+    while (t1 < tcur) {
+        timeIndex1++;
+        t1 = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1);
+    }
+
+    /* Setup for loop */
+    numberOfBools = fmi2_import_get_variable_list_size(indata->boolInputs);
+    numberOfInt = fmi2_import_get_variable_list_size(indata->intInputs);
+    numberOfReals = fmi2_import_get_variable_list_size(indata->realInputs);
+    b1 = (fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,timeIndex1-1);
+    b2 = (fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,timeIndex1);
+    i1 = (fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,timeIndex1-1);
+    i2 = (fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,timeIndex1);
+    r1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,timeIndex1-1);
+    r2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,timeIndex1);
+
+    /* Check for any changes in discrete inputs occuring before the next time */
+    while (t1 <= tnext) {
+        /*boolean*/
+        for (cnt = 0; cnt < numberOfBools; cnt++){
+            if (b1[cnt] != b2[cnt]) {
+                indata->eventIndex1 = timeIndex1 + 1;
+                eventInfo->nextEventTimeDefined = fmi2_true;
+                eventInfo->nextEventTime = t1;
+                return jm_status_success;
+            }
+        }
+        /*integer*/
+        for (cnt = 0; cnt < numberOfInt; cnt++) {
+            if (i1[cnt] != i2[cnt]) {
+                indata->eventIndex1 = timeIndex1 + 1;
+                eventInfo->nextEventTimeDefined = fmi2_true;
+                eventInfo->nextEventTime = t1;
+                return jm_status_success;
+            }
+        }
+        /*discrete real*/
+        for (cnt = 0; cnt < numberOfReals; cnt++) {
+            fmi2_import_variable_t* v = fmi2_import_get_variable(indata->realInputs, cnt);
+            if ((r1[cnt] != r2[cnt]) && (fmi2_import_get_variability(v) == fmi2_variability_enu_discrete)) {
+                indata->eventIndex1 = timeIndex1 + 1;
+                eventInfo->nextEventTimeDefined = fmi2_true;
+                eventInfo->nextEventTime = t1;
+                return jm_status_success;
+            }
+        }
+
+        if (jm_vector_get_size(double)(&indata->timeStamps) == timeIndex1 + 1) {
+            /* At last time index, finished */
+            indata->eventIndex1 = timeIndex1;
+            return jm_status_success;
+        }
+
+        /* Save cur as prev for next itr */
+        b1 = b2;
+        i1 = i2;
+        r1 = r2;
+
+        /* Increase time index and update values */
+        timeIndex1++;
+        t1 = jm_vector_get_item(double)(&indata->timeStamps, timeIndex1);
+        b2 = (fmi2_boolean_t*)jm_vector_get_item(jm_voidp)(indata->boolInputData,timeIndex1);
+        i2 = (fmi2_integer_t*)jm_vector_get_item(jm_voidp)(indata->intInputData,timeIndex1);
+        r2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,timeIndex1);
+    }
+
+    timeIndex1 = indata->eventIndex1 = timeIndex1 - 1;
+    return jm_status_success;
 }
