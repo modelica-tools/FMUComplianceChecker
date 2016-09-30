@@ -1,6 +1,11 @@
 File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
 
+2016-09-30 Version 2.0.3
+- Updates:
+ - Support for FMIL 2.0.2
+  - No changed made since FMIL 2.0.2b4.
+
 2016-09-26 Version 2.0.3b3
 - Feature updates:
  - Support for FMIL 2.0.2b4
