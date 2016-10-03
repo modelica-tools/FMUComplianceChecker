@@ -1,4 +1,4 @@
-File: HOW-TO-RELEASE-FMUChecker.txt
+File: HOW-TO-RELEASE.txt
 Instructions for how to release FMI Compliance Checker (FMUChecker) application.
 
 1. Release FMILibrary.
