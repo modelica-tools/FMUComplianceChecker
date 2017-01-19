@@ -1,5 +1,11 @@
-File: REALEASE-NOTES-FMUChecker.txt
+﻿File: REALEASE-NOTES-FMUChecker.txt
 Release notes for FMI Compliance Checker (FMUChecker) application.
+
+2017-xx-xx version 2.x
+- Updates:
+ - Support for FMIL 2.x
+  - Improved performance for many unique variable descriptions in FMU
+  - Fixed memory bug in jm_vector_insert
 
 2016-09-30 Version 2.0.3
 - Updates:
