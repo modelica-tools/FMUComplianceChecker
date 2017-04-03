@@ -24,10 +24,10 @@ well.
 The primary target of the library build script is a command-line
 executable:  <prefix>/bin/fmuChecket.<platform>[.extention]
 
-Note that FMUChecker depends on FMI Library that is stored in the FMIL
-subdirectory of the source tree. For more information on FMI Library, see
-<http://www.fmi-library.org>. The current version of the FMUChecker
-depends on FMI Library v2.0a5.
+Note that FMUChecker depends on FMI Library that is checked out with svn and
+stored in the FMIL subdirectory of the source tree when building. For more
+information on FMI Library, see <http://www.fmi-library.org>. The current
+version of the FMUChecker depends on FMI Library 2.0.2.
 
 The following FMUChecker specific build configuration options are provided:
 
