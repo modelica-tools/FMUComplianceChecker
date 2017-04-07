@@ -1,5 +1,4 @@
-﻿File: REALEASE-NOTES-FMUChecker.txt
-Release notes for FMI Compliance Checker (FMUChecker) application.
+﻿Release notes for FMI Compliance Checker (FMUChecker) application.
 
 2017-xx-xx version 2.x
 - Updates:
@@ -15,10 +14,10 @@ Release notes for FMI Compliance Checker (FMUChecker) application.
 2016-09-26 Version 2.0.3b3
 - Feature updates:
  - Support for FMIL 2.0.2b4
-  - Added an error message if neither of the required XML elements 
-  CoSimulation_StandAlone or CoSimulation_Tool are present in the 
+  - Added an error message if neither of the required XML elements
+  CoSimulation_StandAlone or CoSimulation_Tool are present in the
   Implementation element for 1.0 CS FMUs.
-  - For ScalarVariable elements with invalid attributes in the XML, the 
+  - For ScalarVariable elements with invalid attributes in the XML, the
   log message was changed from a warning to an error.
 
 2016-04-28 Version 2.0.3b2
