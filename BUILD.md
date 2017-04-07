@@ -1,4 +1,3 @@
-File: BUILD-FMUChecker.txt
 Build instructions for FMI Compliance Checker (FMUChecker) application.
 
 FMUChecker build system utilizes CMake (see <http://www.cmake.org/>)
