@@ -77,7 +77,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 		return jm_status_error;
 	}
 
-    if (fmi1_status_ok_or_warning(fmistatus = check_fmi_set_with_zero_len_array(fmu, cb)) &&
+    if (fmi1_status_ok_or_warning(fmistatus = check_fmi1_set_with_zero_len_array(fmu, cb)) &&
         fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_time(fmu, tstart)) &&
         fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tstart)) &&
         fmi1_status_ok_or_warning(fmistatus = fmi1_import_initialize(fmu, toleranceControlled, relativeTolerance, &eventInfo)) &&
@@ -85,7 +85,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
         fmi1_status_ok_or_warning(fmistatus = fmi1_import_get_event_indicators(fmu, event_indicators_prev, n_event_indicators)))
     {
         jm_log_info(cb, fmu_checker_module, "Initialized FMU for simulation starting at time %g", tstart);
-        if (fmi1_status_ok_or_warning(fmistatus = check_fmi_get_with_zero_len_array(fmu, cb))) {
+        if (fmi1_status_ok_or_warning(fmistatus = check_fmi1_get_with_zero_len_array(fmu, cb))) {
             fmistatus = fmi1_status_ok;
         } else {
             jmstatus = jm_status_error;
