@@ -56,15 +56,21 @@ jm_status_enu_t fmi1_cs_simulate(fmu_check_data_t* cdata)
 		return jm_status_error;
 	}
 
-    if( fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tstart)) &&
-	    fmi1_status_ok_or_warning(fmistatus = fmi1_import_initialize_slave(fmu, tstart, StopTimeDefined, tend))) {
-		jm_log_info(cb, fmu_checker_module, "Initialized FMU for simulation starting at time %g", tstart);
-		fmistatus = fmi1_status_ok;
-	}
-	else {
-			jm_log_fatal(cb, fmu_checker_module, "Failed to initialize FMU for simulation (FMU status: %s)", fmi1_status_to_string(fmistatus));
-			jmstatus = jm_status_error;
-	}
+    if (fmi1_status_ok_or_warning(fmistatus = check_fmi_set_with_zero_len_array(fmu, cb)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tstart)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_import_initialize_slave(fmu, tstart, StopTimeDefined, tend)))
+    {
+        jm_log_info(cb, fmu_checker_module, "Initialized FMU for simulation starting at time %g", tstart);
+        if (fmi1_status_ok_or_warning(fmistatus = check_fmi_get_with_zero_len_array(fmu, cb))) {
+            fmistatus = fmi1_status_ok;
+        } else {
+            jmstatus = jm_status_error;
+        }
+    }
+    else {
+        jm_log_fatal(cb, fmu_checker_module, "Failed to initialize FMU for simulation (FMU status: %s)", fmi1_status_to_string(fmistatus));
+        jmstatus = jm_status_error;
+    }
 
 	if(jmstatus != jm_status_error) {
 		jm_log_verbose(cb, fmu_checker_module, "Writing simulation output for start time");
