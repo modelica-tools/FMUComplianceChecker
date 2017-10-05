@@ -6,7 +6,7 @@
 */
 /**
 	\file fmi2_cs_sim.c
-	Simulation loop for the FMI 1.0 Co-simulation FMUs
+	Simulation loop for the FMI 2.0 Co-simulation FMUs
 */
 #include <fmuChecker.h>
 #include <fmilib.h>
