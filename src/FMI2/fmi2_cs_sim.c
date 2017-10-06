@@ -6,7 +6,7 @@
 */
 /**
 	\file fmi2_cs_sim.c
-	Simulation loop for the FMI 1.0 Co-simulation FMUs
+	Simulation loop for the FMI 2.0 Co-simulation FMUs
 */
 #include <fmuChecker.h>
 #include <fmilib.h>
@@ -127,7 +127,7 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 	}
 
 	if((fmistatus != fmi2_status_ok) && (fmistatus != fmi2_status_warning)) {
-		jm_log_fatal(cb, fmu_checker_module, "Simulation loop terminated  at time %g since FMU returned status: %s", tcur, fmi2_status_to_string(fmistatus));
+		jm_log_fatal(cb, fmu_checker_module, "Simulation loop terminated at time %g since FMU returned status: %s", tcur, fmi2_status_to_string(fmistatus));
 		jmstatus = jm_status_error;
 	}
 	else if(jmstatus != jm_status_error) {

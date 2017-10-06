@@ -6,7 +6,7 @@ along with this program. If not, contact Modelon AB.
 */
 /**
 \file fmi2_me_sim.c
-Simulation loop for the FMI 1.0 model exchange FMUs
+Simulation loop for the FMI 2.0 model exchange FMUs
 */
 #include <fmuChecker.h>
 #include <fmilib.h>

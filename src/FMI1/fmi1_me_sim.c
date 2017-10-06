@@ -77,23 +77,24 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 		return jm_status_error;
 	}
 
-	if( fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_time(fmu, tstart)) &&
+    if (fmi1_status_ok_or_warning(fmistatus = check_fmi1_set_with_zero_len_array(fmu, cb)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_time(fmu, tstart)) &&
         fmi1_status_ok_or_warning(fmistatus = fmi1_set_inputs(cdata, tstart)) &&
-		fmi1_status_ok_or_warning(fmistatus = fmi1_import_initialize(fmu, toleranceControlled, relativeTolerance, &eventInfo)) &&
-		( (n_states == 0) ||
-		  fmi1_status_ok_or_warning(fmistatus = fmi1_import_get_continuous_states(fmu, states, n_states))
-		) &&
-		( (n_event_indicators == 0) ||
-		  fmi1_status_ok_or_warning(fmistatus = fmi1_import_get_event_indicators(fmu, event_indicators_prev, n_event_indicators))
-		)
-	   ) {
-			jm_log_info(cb, fmu_checker_module, "Initialized FMU for simulation starting at time %g", tstart);
-	}
+        fmi1_status_ok_or_warning(fmistatus = fmi1_import_initialize(fmu, toleranceControlled, relativeTolerance, &eventInfo)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_import_get_continuous_states(fmu, states, n_states)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_import_get_event_indicators(fmu, event_indicators_prev, n_event_indicators)))
+    {
+        jm_log_info(cb, fmu_checker_module, "Initialized FMU for simulation starting at time %g", tstart);
+        if (fmi1_status_ok_or_warning(fmistatus = check_fmi1_get_with_zero_len_array(fmu, cb))) {
+            fmistatus = fmi1_status_ok;
+        } else {
+            jmstatus = jm_status_error;
+        }
+    }
 	else {
-			jm_log_fatal(cb, fmu_checker_module, "Failed to initialize FMU for simulation (FMU status: %s)", fmi1_status_to_string(fmistatus));
-			fmistatus = fmi1_status_fatal;
-			jmstatus = jm_status_error;
-	}
+        jm_log_fatal(cb, fmu_checker_module, "Failed to initialize FMU for simulation (FMU status: %s)", fmi1_status_to_string(fmistatus));
+        jmstatus = jm_status_error;
+    }
 
 	tcur = tstart;
 	if((jmstatus != jm_status_error) && (fmi1_write_csv_data(cdata, tstart) != jm_status_success)) {
@@ -106,7 +107,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 		int external_time_event = 0;
 
 		/* Get derivatives */
-		if( (n_states > 0) &&  !fmi1_status_ok_or_warning(fmistatus = fmi1_import_get_derivatives(fmu, states_der, n_states))) {
+		if(!fmi1_status_ok_or_warning(fmistatus = fmi1_import_get_derivatives(fmu, states_der, n_states))) {
 			jm_log_fatal(cb, fmu_checker_module, "Could not retrieve time derivatives");
 			break;
 		}
@@ -159,26 +160,26 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 			states[k] = states[k] + hcur*states_der[k];
 		}
 
-		/* Set states */
-		if( (n_states > 0) && !fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_continuous_states(fmu, states, n_states))) {
-			jm_log_fatal(cb, fmu_checker_module, "Could not set continuous states");
-			break;
-		}
+        /* Set states */
+        if (!fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_continuous_states(fmu, states, n_states))) {
+            jm_log_fatal(cb, fmu_checker_module, "Could not set continuous states");
+            break;
+        }
 
 		callEventUpdate = fmi1_false;
 		/* Step is completed */
-		if(  !fmi1_status_ok_or_warning(fmistatus = fmi1_import_completed_integrator_step(fmu, &callEventUpdate))){
+		if (!fmi1_status_ok_or_warning(fmistatus = fmi1_import_completed_integrator_step(fmu, &callEventUpdate))){
 			jm_log_fatal(cb, fmu_checker_module, "Could not complete integrator step");
 			break;
 		}
 
-		/* Check if an event indicator has triggered */
-		if( (n_event_indicators > 0) &&
-			!fmi1_status_ok_or_warning(fmistatus = fmi1_import_get_event_indicators(fmu, event_indicators, n_event_indicators))
-			) {
-			jm_log_fatal(cb, fmu_checker_module, "Could not get event indicators");
-			break;
-		}
+        /* Check if an event indicator has triggered */
+        if (!fmi1_status_ok_or_warning(fmistatus = 
+                fmi1_import_get_event_indicators(fmu, event_indicators, n_event_indicators)))
+        {
+            jm_log_fatal(cb, fmu_checker_module, "Could not get event indicators");
+            break;
+        }
 
 		for (k = 0; k < n_event_indicators; k++) {
 			if (event_indicators[k]*event_indicators_prev[k] < 0) {
@@ -236,7 +237,7 @@ jm_status_enu_t fmi1_me_simulate(fmu_check_data_t* cdata)
 			}
 			/* Get event indicators */
 			fmistatus = fmi1_import_get_event_indicators(fmu, event_indicators_prev, n_event_indicators);
-			if ((n_event_indicators > 0) && !fmi1_status_ok_or_warning(fmistatus)) {
+			if (!fmi1_status_ok_or_warning(fmistatus)) {
 				jm_log_fatal(cb, fmu_checker_module, "Could not get event indicators");
 				break;
 			}

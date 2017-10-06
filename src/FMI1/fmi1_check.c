@@ -451,3 +451,35 @@ jm_status_enu_t fmi1_write_csv_data(fmu_check_data_t* cdata, double time) {
 	}
 	return jm_status_success;
 }
+
+fmi1_status_t check_fmi1_get_with_zero_len_array(fmi1_import_t* fmu, jm_callbacks* cb)
+{
+    fmi1_status_t fmistatus;
+    jm_log_info(cb, fmu_checker_module, "Checking that FMI get functions can be called with zero length arrays");
+    if (fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_real(fmu, NULL, 0, 0)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_integer(fmu, NULL, 0, 0)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_boolean(fmu, NULL, 0, 0)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_string(fmu, NULL, 0, 0)))
+    {
+        return fmistatus;
+    }
+
+    jm_log_fatal(cb, fmu_checker_module, "Calling FMI get functions with zero length arrays failed");
+    return fmistatus;
+}
+
+fmi1_status_t check_fmi1_set_with_zero_len_array(fmi1_import_t* fmu, jm_callbacks* cb)
+{
+    fmi1_status_t fmistatus;
+    jm_log_info(cb, fmu_checker_module, "Checking that FMI set functions can be called with zero length arrays");
+    if (fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_real(fmu, NULL, 0, 0)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_integer(fmu, NULL, 0, 0)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_boolean(fmu, NULL, 0, 0)) &&
+        fmi1_status_ok_or_warning(fmistatus = fmi1_import_set_string(fmu, NULL, 0, 0)))
+    {
+        return fmistatus;
+    }
+
+    jm_log_fatal(cb, fmu_checker_module, "Calling FMI set functions with zero length arrays failed");
+    return fmistatus;
+}

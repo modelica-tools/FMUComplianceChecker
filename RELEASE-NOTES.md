@@ -1,5 +1,13 @@
-File: REALEASE-NOTES-FMUChecker.txt
-Release notes for FMI Compliance Checker (FMUChecker) application.
+﻿Release notes for FMI Compliance Checker (FMUChecker) application.
+
+2017-10-06 version 2.0.4b1
+- Updates:
+ - Added check for calls with zero-size arrays (see 1.0.1 FMI spec p. 13).
+ - Support for FMIL 2.0.3b1
+  - Added check for consistent start values in FMI 1.0.1 alias sets.
+  - Added error for the deprecated capability flag canSignalEvents in FMI 1.0.1
+  - Improved performance for many unique variable descriptions in FMU
+  - Fixed memory bug in jm_vector_insert
 
 2016-09-30 Version 2.0.3
 - Updates:
@@ -9,10 +17,10 @@ Release notes for FMI Compliance Checker (FMUChecker) application.
 2016-09-26 Version 2.0.3b3
 - Feature updates:
  - Support for FMIL 2.0.2b4
-  - Added an error message if neither of the required XML elements 
-  CoSimulation_StandAlone or CoSimulation_Tool are present in the 
+  - Added an error message if neither of the required XML elements
+  CoSimulation_StandAlone or CoSimulation_Tool are present in the
   Implementation element for 1.0 CS FMUs.
-  - For ScalarVariable elements with invalid attributes in the XML, the 
+  - For ScalarVariable elements with invalid attributes in the XML, the
   log message was changed from a warning to an error.
 
 2016-04-28 Version 2.0.3b2

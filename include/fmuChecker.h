@@ -235,4 +235,12 @@ static int fmi2_status_ok_or_warning(fmi2_status_t fmistatus) {
 */
 void prepare_time_step_info(fmu_check_data_t* cdata, double* timeEnd, double* timeStep);
 
+/* Calls the FMI 1.0 get functions with zero length arrays and logs any problems and
+   returns either fmi ok/warning status when successful and other fmi status otherwise */
+fmi1_status_t check_fmi1_get_with_zero_len_array(fmi1_import_t* fmu, jm_callbacks* cb);
+
+/* Calls the FMI 1.0 set functions with zero length arrays and logs any problems and
+   returns either fmi ok/warning status when successful and other fmi status otherwise */
+fmi1_status_t check_fmi1_set_with_zero_len_array(fmi1_import_t* fmu, jm_callbacks* cb);
+
 #endif
