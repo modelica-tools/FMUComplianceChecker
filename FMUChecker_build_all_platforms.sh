@@ -1,5 +1,5 @@
 #!/bin/bash -x
-FMUCHECKERVERSION=FMUChecker-2.0.3b1
+FMUCHECKERVERSION=FMUChecker-2.0.4b1
 # The script is used to create FMU checker executables for 4 different platforms
 # It is intended to be run from MSYS shell on Windows on a computer with
 #  the following installed:
@@ -34,9 +34,9 @@ LINUXHOST=victor@192.168.56.101
 #        the MSYS shell in the following way:
 #
 #            ssh victor@192.168.56.101
-#            ssh-keygen -t dsa 
+#            ssh-keygen -t rsa
 #
-#        set the file to save the key to id_dsa and no passphrase. And then
+#        set the file to save the key to id_rsa and no passphrase. And then
 #        while still logged in to the linux machine:
 #
 #            mkdir .ssh
@@ -44,13 +44,13 @@ LINUXHOST=victor@192.168.56.101
 #            cd .ssh
 #            touch authorized_keys
 #            chmod 600 authorized_keys
-#            cat ../id_dsa.pub >> authorized_keys
-#            rm ../id_dsa.pub
+#            cat ../id_rsa.pub >> authorized_keys
+#            rm ../id_rsa.pub
 #            exit
 #
 #         And then from the MSYS shell:
 #
-#            scp victor@192.168.56.101:~/id_dsa ~/.ssh
+#            scp victor@192.168.56.101:~/id_rsa ~/.ssh
 #
 #         Try the ssh server setup in the following way (no password should be
 #         required):
@@ -58,16 +58,14 @@ LINUXHOST=victor@192.168.56.101
 #            ssh -v victor@192.168.56.101
 #
 # The build directory is always cleaned before use. Source directory is
-#  updated or check-out is done. Note that svn should know password for 
-#  svn.modelon.se/P533-FMIComplianceChecker in order to check-out the checker.
+#  updated or check-out is done.
 SRCDIR=`pwd`/src
 BUILDDIR=`pwd`/build
 REMOTESRCDIR=/home/victor/FMUCheckerBuild
 REMOTEBUILDDIR=/tmp/FMUCheckerBuild
 
 # Almost no error checking in the script. So, please, read the output!
-FMUCHK_REPO="https://svn.modelon.se/P533-FMIComplianceChecker/tags/2.0.3b1"
-# FMUCHK_REPO="https://svn.modelon.se/P533-FMIComplianceChecker/branches/2.0.x"
+FMUCHK_REPO="https://github.com/modelica-tools/FMUComplianceChecker.git/tags/2.0.4b1"
 # the build dir will be removed with rm -rf if RMBUILDDIR="YES"
 RMBUILDDIR="YES"
 ################################################################################
@@ -127,12 +125,12 @@ ssh $LINUXHOST "cd $REMOTEBUILDDIR/build64; cmake $REMOTESRCDIR/FMUCHK"
 ssh $LINUXHOST "cd $REMOTEBUILDDIR/build64; cmake --build . --target install"  || exit 1
 ssh $LINUXHOST "cd $REMOTEBUILDDIR/build64; ctest" || exit 1
 
-scp -r $SRCDIR/FMUCHK/FMIL/ThirdParty/FMI/default $SRCDIR/FMUCHK/*-FMUChecker.txt $LINUXHOST:$REMOTEBUILDDIR/install|| exit 1
+scp -r $SRCDIR/FMUCHK/FMIL/ThirdParty/FMI/default $SRCDIR/FMUCHK/*.md $LINUXHOST:$REMOTEBUILDDIR/install|| exit 1
 ssh $LINUXHOST "mv $REMOTEBUILDDIR/install/default $REMOTEBUILDDIR/install/include" || exit 1
 
 for platform in "linux32" "linux64" ; do 
 	ssh $LINUXHOST "mkdir $REMOTEBUILDDIR/install/$FMUCHECKERVERSION-$platform  >& /dev/null"
-	ssh $LINUXHOST "cd $REMOTEBUILDDIR/install; cp -al include *-FMUChecker.txt fmuCheck.$platform $FMUCHECKERVERSION-$platform" || exit 1
+	ssh $LINUXHOST "cd $REMOTEBUILDDIR/install; cp -al include *.md fmuCheck.$platform $FMUCHECKERVERSION-$platform" || exit 1
 	ssh $LINUXHOST "cd $REMOTEBUILDDIR/install; zip -r $FMUCHECKERVERSION-$platform.zip $FMUCHECKERVERSION-$platform"|| exit 1
 done
 
@@ -143,13 +141,13 @@ ls $BUILDDIR/install
 # now packaging
 cp -r $SRCDIR/FMUCHK/FMIL/ThirdParty/FMI/default  $BUILDDIR/install
 mv $BUILDDIR/install/default $BUILDDIR/install/include
-cp $SRCDIR/FMUCHK/*-FMUChecker.txt $BUILDDIR/install
+cp $SRCDIR/FMUCHK/*.md $BUILDDIR/install
 svn export $SRCDIR/FMUCHK $BUILDDIR/install/$FMUCHECKERVERSION
 
 pushd $BUILDDIR/install
 for platform in "win32" "win64"; do
 	mkdir $FMUCHECKERVERSION-$platform  >& /dev/null
-	cp -r include *-FMUChecker.txt fmuCheck.$platform* $FMUCHECKERVERSION-$platform
+	cp -r include *.md fmuCheck.$platform* $FMUCHECKERVERSION-$platform
 	"$X_7zip"  a -tzip $FMUCHECKERVERSION-$platform.zip $FMUCHECKERVERSION-$platform
 done
 "$X_7zip"  a -tzip $FMUCHECKERVERSION-src.zip $FMUCHECKERVERSION
