@@ -1,8 +1,11 @@
 ﻿Release notes for FMI Compliance Checker (FMUChecker) application.
 
-2017-xx-xx version 2.x
+2017-10-06 version 2.0.4b1
 - Updates:
- - Support for FMIL 2.x
+ - Added check for calls with zero-size arrays (see 1.0.1 FMI spec p. 13).
+ - Support for FMIL 2.0.3b1
+  - Added check for consistent start values in FMI 1.0.1 alias sets.
+  - Added error for the deprecated capability flag canSignalEvents in FMI 1.0.1
   - Improved performance for many unique variable descriptions in FMU
   - Fixed memory bug in jm_vector_insert
 

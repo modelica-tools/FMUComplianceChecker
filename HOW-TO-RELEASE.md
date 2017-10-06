@@ -1,7 +1,8 @@
 Instructions for how to release FMI Compliance Checker (FMUChecker) application.
 
 1. Release FMILibrary.
-2. Set trunk Compliance Checker svn externals to point to the released FMILibrary.
+2. Set the CMake external project for FMI Library to point to the newly released
+   version on trunk.
 3. Prepare RELEASE-NOTES-FMUChecker.txt for a new release.
 4. Merge changes to the release branch.
 5. Create a release tag from the branch.
