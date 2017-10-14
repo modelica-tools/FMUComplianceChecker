@@ -364,7 +364,7 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 		sprintf(fmt_false, "%c0", cdata->CSV_separator);
 	}
 
-	if(checked_fprintf(cdata, "%g", time) != jm_status_success) {
+	if(checked_fprintf(cdata, "%.16E", time) != jm_status_success) {
 		return jm_status_error;
 	}
 
