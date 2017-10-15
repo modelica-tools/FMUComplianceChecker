@@ -192,7 +192,7 @@ static int fmi1_status_ok_or_warning(fmi1_status_t fmistatus) {
 	return (fmistatus == fmi1_status_ok) || (fmistatus == fmi1_status_warning);
 }
 
-/** Print the string in double quotes replacing any occurence of '"' in the string with \' */
+/** Print the string in double quotes replacing any occurrence of '"' in the string with \' */
 jm_status_enu_t checked_print_quoted_str(fmu_check_data_t* cdata, const char* str);
 
 /** Write out the data into the output file */

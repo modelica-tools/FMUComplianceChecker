@@ -27,7 +27,7 @@ The generated solution files can be used in the Microsoft Visual Studio IDE as
 well.
 
 The primary target of the library build script is a command-line
-executable:  <prefix>/bin/fmuChecket.<platform>[.extention]
+executable:  <prefix>/bin/fmuChecket.<platform>[.extension]
 
 Note that FMUChecker depends on FMI Library that is checked out with svn and
 stored in the FMIL subdirectory of the source tree when building. For more
