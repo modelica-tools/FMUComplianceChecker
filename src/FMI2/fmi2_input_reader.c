@@ -483,7 +483,7 @@ jm_status_enu_t fmi2_check_external_events(fmi2_real_t tcur, fmi2_real_t tnext, 
     r1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,timeIndex1-1);
     r2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,timeIndex1);
 
-    /* Check for any changes in discrete inputs occuring before the next time */
+    /* Check for any changes in discrete inputs occurring before the next time */
     while (t1 <= tnext) {
         /*boolean*/
         for (cnt = 0; cnt < numberOfBools; cnt++){
