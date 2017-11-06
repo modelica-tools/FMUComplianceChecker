@@ -1,5 +1,10 @@
 ﻿Release notes for FMI Compliance Checker (FMUChecker) application.
 
+2017-11-06 Version 2.0.4
+- Updates:
+ - Support for FMIL 2.0.3
+  - Solved compilation error related to vsnprintf on macOS.
+
 2017-10-06 version 2.0.4b1
 - Updates:
  - Added check for calls with zero-size arrays (see 1.0.1 FMI spec p. 13).
