@@ -47,15 +47,34 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 	
 	//fmistatus = fmi2_import_initialize(fmu, 0 /* relTolerance */, tstart, StopTimeDefined, tend);
 	if( fmi2_status_ok_or_warning(fmistatus = fmi2_set_inputs(cdata, tstart)) &&
-		fmi2_status_ok_or_warning(fmistatus =  fmi2_import_setup_experiment(fmu, toleranceControlled,relativeTolerance, tstart, fmi2_false, 0.0)) && 
-		fmi2_status_ok_or_warning(fmistatus = fmi2_import_enter_initialization_mode(fmu)) &&
-		fmi2_status_ok_or_warning(fmi2_import_exit_initialization_mode(fmu))){
-			jm_log_info(cb, fmu_checker_module, "Initialized FMU for simulation starting at time %g", tstart);
+		fmi2_status_ok_or_warning(fmistatus = fmi2_import_setup_experiment(fmu, toleranceControlled,relativeTolerance, tstart, fmi2_false, 0.0)) && 
+		fmi2_status_ok_or_warning(fmistatus = fmi2_import_enter_initialization_mode(fmu))){
+			jm_log_verbose(cb, fmu_checker_module, "Entered initialization mode");
 			fmistatus = fmi2_status_ok;
 	}
 	else {
-			jm_log_fatal(cb, fmu_checker_module, "Failed to initialize FMU for simulation (FMU status: %s)", fmi2_status_to_string(fmistatus));
+			jm_log_fatal(cb, fmu_checker_module, "Failed to enter initialization mode (FMU status: %s)", fmi2_status_to_string(fmistatus));
 			jmstatus = jm_status_error;
+	}
+
+	if(jmstatus != jm_status_error) {
+		jmstatus = fmi2_check_get_INIT(cdata);
+		if (jmstatus == jm_status_error) {
+			jm_log_fatal(cb, fmu_checker_module, "Failed to get outputs/continuous-time states and state derivatives while in initialization mode");
+			jmstatus = jm_status_error;
+		}
+	}
+
+	if(jmstatus != jm_status_error) {
+		if (fmi2_status_ok_or_warning(fmistatus = fmi2_import_exit_initialization_mode(fmu))){
+			jm_log_verbose(cb, fmu_checker_module, "Exited initialization mode");
+			jm_log_info(cb, fmu_checker_module, "Initialized FMU for simulation starting at time %g", tstart);
+			fmistatus = fmi2_status_ok;
+		}
+		else {
+			jm_log_fatal(cb, fmu_checker_module, "Failed to exit initialization mode (FMU status: %s)", fmi2_status_to_string(fmistatus));
+			jmstatus = jm_status_error;
+		}
 	}
 
 	if(jmstatus != jm_status_error) {

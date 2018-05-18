@@ -455,3 +455,109 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 	}
 	return jm_status_success;
 }
+
+
+int fmi2_output_var_filter_function(fmi2_import_variable_t* v, void * data)
+{
+	return fmi2_import_get_causality(v) == fmi2_causality_enu_output;
+}
+
+jm_status_enu_t fmi2_check_get_INIT(fmu_check_data_t* cdata)
+{
+	fmi2_import_t* fmu = cdata->fmu2;
+	jm_callbacks* cb = &cdata->callbacks;
+	fmi2_status_t fmistatus = fmi2_status_ok;
+	jm_status_enu_t outstatus = jm_status_success;
+	fmi2_import_variable_list_t* vl_to_check = fmi2_import_filter_variables(cdata->vl2, &fmi2_output_var_filter_function, NULL);
+	fmi2_import_variable_list_t* derivatives = fmi2_import_get_derivatives_list(fmu);
+	unsigned n_der = (unsigned)fmi2_import_get_variable_list_size(derivatives);
+	unsigned i;
+	for (i = 0; i < n_der; i++) {
+		fmi2_import_variable_t* dv = fmi2_import_get_variable(derivatives, i);
+		fmi2_import_real_variable_t* rv = fmi2_import_get_variable_as_real(dv);
+		if (rv == NULL) {
+			jm_log_error(cb, fmu_checker_module, "Derivative variable %s is not of real type.", fmi2_import_get_variable_name(dv));
+			outstatus = jm_status_error;
+			break;
+		}
+		outstatus = fmi2_import_var_list_push_back(vl_to_check, (fmi2_import_variable_t*)rv);
+		if (outstatus == jm_status_error) {
+			jm_log_fatal(cb, fmu_checker_module, "Failed to push back derivate %s to list of variables to get during initialization.", fmi2_import_get_variable_name(dv));
+			break;
+		}
+		fmi2_import_real_variable_t* sv = fmi2_import_get_real_variable_derivative_of(rv);
+		if (sv == NULL) {
+			jm_log_error(cb, fmu_checker_module, "Derivative variable %s is not declared to be the derivative of another variable.", 
+				fmi2_import_get_variable_name(dv));
+			outstatus = jm_status_error;
+			break;
+		}
+		outstatus = fmi2_import_var_list_push_back(vl_to_check, (fmi2_import_variable_t*)sv);
+		if (outstatus == jm_status_error) {
+			jm_log_fatal(cb, fmu_checker_module, "Failed to push back state %s to list of variables to get during initialization.", fmi2_import_get_variable_name((fmi2_import_variable_t*)sv));
+			break;
+		}
+	}
+	if (outstatus == jm_status_error) {
+		fmi2_import_free_variable_list(vl_to_check);
+		fmi2_import_free_variable_list(derivatives);
+		return outstatus;
+	}
+
+	unsigned n = (unsigned)fmi2_import_get_variable_list_size(vl_to_check);
+	for(i = 0; i < n; i++) {
+		fmi2_import_variable_t* v = fmi2_import_get_variable(vl_to_check, i);
+		if (fmi2_import_get_causality(v) != fmi2_causality_enu_output){
+			continue;
+		}
+		fmi2_value_reference_t vr = fmi2_import_get_variable_vr(v); 
+		switch(fmi2_import_get_variable_base_type(v)) {
+		case fmi2_base_type_real:
+			{
+				double val;
+				fmistatus = fmi2_import_get_real(fmu,&vr, 1, &val);
+				break;
+			}
+		case fmi2_base_type_int:
+			{
+				int val;
+				fmistatus = fmi2_import_get_integer(fmu,&vr, 1, &val);
+				break;
+			}
+		case fmi2_base_type_bool:
+			{
+				fmi2_boolean_t val;
+				fmistatus = fmi2_import_get_boolean(fmu,&vr, 1, &val);
+				break;
+			}
+		case fmi2_base_type_str:
+			{
+				fmi2_string_t val;
+				fmistatus = fmi2_import_get_string(fmu,&vr, 1, &val);
+				break;
+			}
+		case fmi2_base_type_enum:
+			{
+				int val;
+				fmi2_import_variable_typedef_t* t = fmi2_import_get_variable_declared_type(v);
+				fmi2_import_enumeration_typedef_t* et = 0;
+				unsigned int item = 0;
+				const char* itname = 0;
+				if(t) et = fmi2_import_get_type_as_enum(t);
+
+				fmistatus = fmi2_import_get_integer(fmu,&vr, 1, &val);
+				if(et) itname = fmi2_import_get_enum_type_value_name(et, val);
+				if(!itname) {
+					jm_log_error(cb, fmu_checker_module, "Could not get item name for enum variable %s", fmi2_import_get_variable_name(v));
+				}
+				break;
+			}
+		}
+		if(fmistatus != fmi2_status_ok) {
+			jm_log_error(cb, fmu_checker_module, "fmiGetXXX returned status: %s for variable %s", 
+				fmi2_status_to_string(fmistatus), fmi2_import_get_variable_name(v));
+			return jm_status_error;
+		}
+	}
+	return outstatus;
+}
