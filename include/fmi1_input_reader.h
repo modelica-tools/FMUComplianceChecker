@@ -1,7 +1,7 @@
 /*
     Copyright (C) 2012 Modelon AB <http://www.modelon.com>
 
-	You should have received a copy of the LICENCE-FMUChecker.txt
+	You should have received a copy of the LICENSE-FMUChecker.txt
     along with this program. If not, contact Modelon AB.
 */
 /**
