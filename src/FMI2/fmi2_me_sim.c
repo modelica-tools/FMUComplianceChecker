@@ -80,7 +80,7 @@ jm_status_enu_t fmi2_me_simulate(fmu_check_data_t* cdata)
 	}
 
 	cdata->instanceNameSavedPtr = 0;
-	cdata->instanceNameToCompare = "Test FMI 2.0 ME";
+    cdata->instanceNameToCompare = fmi2_import_get_model_identifier_CS(fmu);
 
 	jmstatus = fmi2_import_instantiate(fmu, cdata->instanceNameToCompare,fmi2_model_exchange,0,0);
 

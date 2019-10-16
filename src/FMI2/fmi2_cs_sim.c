@@ -34,7 +34,7 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 
     prepare_time_step_info(cdata, &tend, &hstep);
 
-	cdata->instanceNameToCompare = "Test FMI 2.0 CS";
+    cdata->instanceNameToCompare = fmi2_import_get_model_identifier_CS(fmu);
 	cdata->instanceNameSavedPtr = 0;
 	jmstatus = fmi2_import_instantiate(fmu, cdata->instanceNameToCompare, fmi2_cosimulation, 0, visible);
 
