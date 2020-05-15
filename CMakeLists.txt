@@ -137,7 +137,7 @@ endif()
 ExternalProject_Add(
 	fmil
 	GIT_REPOSITORY "https://github.com/modelon-community/fmi-library.git"
-        GIT_TAG 2.0.3
+	GIT_TAG 2.0.3
 	PREFIX "${FMUCHK_BUILD}/FMIL"
 	SOURCE_DIR "${FMUCHK_FMIL_HOME_DIR}"
 	CMAKE_CACHE_ARGS ${FMIL_SETTINGS}
