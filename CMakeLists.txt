@@ -29,19 +29,19 @@ if(MSVC)
 endif()
 
 set(FMUCHK_FMI_PLATFORM_DOC "FMI platform defines the subdirectory within FMU where binary is located")
-set(FMUCHK_FMI_PLATFORM ”unknown” CACHE STRING ${FMUCHK_FMI_PLATFORM_DOC})
+set(FMUCHK_FMI_PLATFORM "unknown" CACHE STRING ${FMUCHK_FMI_PLATFORM_DOC})
 
 IF(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE "Release")
 	message(STATUS "Setting build type to ${CMAKE_BUILD_TYPE}")
 ENDIF()
 
-if(FMUCHK_FMI_PLATFORM MATCHES ”unknown”)
+if(FMUCHK_FMI_PLATFORM MATCHES "unknown")
 	if(CMAKE_HOST_WIN32) #Set to true when the host system is Windows and on cygwin.
 		set(FMI_PLATFORM win)
-	elseif(CMAKE_HOST_APPLE) #Set to true when the host system is Apple OSX. 
+	elseif(CMAKE_HOST_APPLE) #Set to true when the host system is Apple OSX.
 		set(FMI_PLATFORM darwin)
-	elseif(CMAKE_HOST_UNIX) #Set to true when the host system is UNIX or UNIX like (i.e. APPLE and CYGWIN). 
+	elseif(CMAKE_HOST_UNIX) #Set to true when the host system is UNIX or UNIX like (i.e. APPLE and CYGWIN).
 		set(FMI_PLATFORM linux)
 	else(CMAKE_HOST_WIN32)
 		message(SEND_ERROR "Target platform is not supported by the tests")
@@ -52,7 +52,7 @@ if(FMUCHK_FMI_PLATFORM MATCHES ”unknown”)
 	else()
 		set(FMI_PLATFORM "${FMI_PLATFORM}64")
 	endif()
-	
+
 	set(FMUCHK_FMI_PLATFORM ${FMI_PLATFORM} CACHE STRING ${FMUCHK_FMI_PLATFORM_DOC} FORCE)
 else()
 	set(FMI_PLATFORM ${FMUCHK_FMI_PLATFORM})
@@ -63,7 +63,7 @@ set(fmuCheck fmuCheck.${FMUCHK_FMI_PLATFORM})
 if(MSVC)
 	# With C89 we're forced to use non-secure functions
 	ADD_DEFINITIONS (/D _CRT_SECURE_NO_WARNINGS)
-	
+
 	# Set the run-time library flag as controlled by the FMUCHK_BUILD_WITH_STATIC_RTLIB option
 	if(FMUCHK_BUILD_WITH_STATIC_RTLIB)
 		set(BUILD_WITH_STATIC_CRT YES)
@@ -84,7 +84,7 @@ if(MSVC)
 			string(REPLACE "${replace_from}" "${replace_to}" tmp "${${flag_var}}")
 			set(${flag_var} ${tmp} CACHE STRING "compiler flags" FORCE)
 		endif()
-	endforeach(flag_var)	
+	endforeach(flag_var)
 endif()
 
 set(FMI_STANDARD_HEADERS_DIR ${FMUCHK_FMI_STANDARD_HEADERS})
@@ -125,7 +125,7 @@ set(FMIL_SETTINGS
 	-DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
 	-DCMAKE_LINK_LIBRARY_FLAG:STRING=${CMAKE_LINK_LIBRARY_FLAG}
 	-DCMAKE_MODULE_LINKER_FLAGS:STRING=${CMAKE_MODULE_LINKER_FLAGS}
-	-DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}	
+	-DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}
 )
 
 if(MSVC)
@@ -156,13 +156,13 @@ ExternalProject_Add_Step(
 )
 
 add_dependencies(fmil ${CMAKE_BINARY_DIR}/CMakeCache.txt  ${FMUCHK_HOME}/CMakeLists.txt)
-  
+
 set(fmilib_name "${FMUCHK_BUILD}/FMIL/build/${CMAKE_CFG_INTDIR}/${CMAKE_STATIC_LIBRARY_PREFIX}fmilib${CMAKE_STATIC_LIBRARY_SUFFIX}")
-  
+
 add_library(fmilib STATIC IMPORTED)
 
 set_target_properties(
-	fmilib PROPERTIES 
+	fmilib PROPERTIES
 		IMPORTED_LOCATION "${fmilib_name}"
 )
 
@@ -174,11 +174,11 @@ getVersionSVN("${FMUCHK_HOME}" FMUCHK_VERSION)
 message(STATUS "Checker version: ${FMUCHK_VERSION}")
 getVersionSVN("${FMUCHK_HOME}/FMIL" FMIL_VERSION)
 message(STATUS "FMIL version: ${FMIL_VERSION}")
-file(WRITE ${CMAKE_BINARY_DIR}/VERSION-FMUChecker.txt 
+file(WRITE ${CMAKE_BINARY_DIR}/VERSION-FMUChecker.txt
 "FMI checker version:${FMUCHK_VERSION}
 FMI library version:${FMIL_VERSION}
 ")
-file(WRITE ${CMAKE_BINARY_DIR}/fmu_checker_version.h 
+file(WRITE ${CMAKE_BINARY_DIR}/fmu_checker_version.h
 "
 /* Version information generated based on SVN info */
 #define FMUCHK_VERSION \"${FMUCHK_VERSION}\"
@@ -186,20 +186,20 @@ file(WRITE ${CMAKE_BINARY_DIR}/fmu_checker_version.h
 ")
 
 # Now create the checker executable
-set(SOURCE 
+set(SOURCE
 	${FMUCHK_HOME}/src/Common/fmuChecker.c
-    
-    ${FMUCHK_HOME}/src/FMI1/fmi1_input_reader.c	
+
+    ${FMUCHK_HOME}/src/FMI1/fmi1_input_reader.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_check.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_me_sim.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_cs_sim.c
-    
+
 	${FMUCHK_HOME}/src/FMI2/fmi2_input_reader.c
 	${FMUCHK_HOME}/src/FMI2/fmi2_check.c
 	${FMUCHK_HOME}/src/FMI2/fmi2_me_sim.c
 	${FMUCHK_HOME}/src/FMI2/fmi2_cs_sim.c
 	)
-set(HEADERS 
+set(HEADERS
     ${FMUCHK_HOME}/include/fmi1_input_reader.h
 	${FMUCHK_HOME}/include/fmi2_input_reader.h
 	${FMUCHK_HOME}/include/fmuChecker.h)
@@ -215,7 +215,7 @@ target_link_libraries(${fmuCheck} fmilib)
 if(WIN32)
 	target_link_libraries(${fmuCheck} Shlwapi)
 endif(WIN32)
-if(UNIX) 
+if(UNIX)
 	target_link_libraries(${fmuCheck} dl)
 endif(UNIX)
 
@@ -225,16 +225,16 @@ install(TARGETS ${fmuCheck} DESTINATION ${FMUCHK_INSTALL_PREFIX})
 if(NOT ${FMUCHK_TEST_FMUS_DIR} STREQUAL "" AND EXISTS "${FMUCHK_TEST_FMUS_DIR}")
     file(TO_CMAKE_PATH ${FMUCHK_TEST_FMUS_DIR} FMUCHK_TEST_FMUS_DIR_NORMALIZED)
 else()
-    file(TO_CMAKE_PATH "${FMUCHK_HOME}/TestFMUs" FMUCHK_TEST_FMUS_DIR_NORMALIZED)    
+    file(TO_CMAKE_PATH "${FMUCHK_HOME}/TestFMUs" FMUCHK_TEST_FMUS_DIR_NORMALIZED)
 endif()
 
 file(GLOB_RECURSE TEST_FMUS "${FMUCHK_TEST_FMUS_DIR_NORMALIZED}/*.fmu" )
-	   
-set(BAD_FMUS 
+
+set(BAD_FMUS
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_malformed_mf.fmu
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_malformed_mf.fmu)
 
-set(ALL_TEST_FMUS 
+set(ALL_TEST_FMUS
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs.fmu
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs_tc.fmu
 	${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_me.fmu
@@ -245,7 +245,7 @@ set(ALL_TEST_FMUS
 ENABLE_TESTING()
 
 set(TEST_OUT_DIR ${FMUCHK_BUILD}/TestOutput)
-file(MAKE_DIRECTORY ${TEST_OUT_DIR}) 
+file(MAKE_DIRECTORY ${TEST_OUT_DIR})
 
 add_test(
 	NAME Test_FMIL
@@ -256,7 +256,7 @@ add_test(
 	NAME Build_before_test
 	COMMAND "${CMAKE_COMMAND}" --build ${FMUCHK_BUILD} --config $<CONFIGURATION>)
 
-SET_TESTS_PROPERTIES ( 
+SET_TESTS_PROPERTIES (
 		Build_before_test PROPERTIES DEPENDS Test_FMIL)
 
 
@@ -284,24 +284,24 @@ if(TEST_COMMAND_LINE_PARSING)
 endif()
 
 add_test(
-	NAME check_with_default_params 
+	NAME check_with_default_params
 	COMMAND ${fmuCheck}  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall_cs.fmu)
 
-set_tests_properties ( 
-		check_with_default_params 
+set_tests_properties (
+		check_with_default_params
 		PROPERTIES DEPENDS Build_before_test)
 
 add_test(
 	NAME check_require_me
 	COMMAND ${fmuCheck} -k me  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_me.fmu)
-set_tests_properties ( 
+set_tests_properties (
 		check_require_me
 		PROPERTIES DEPENDS Build_before_test)
 
 add_test(
 	NAME check_require_me_fail
 	COMMAND ${fmuCheck} -k me  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_cs.fmu)
-set_tests_properties ( 
+set_tests_properties (
 		check_require_me_fail
 		PROPERTIES DEPENDS Build_before_test
 #        WILL_FAIL TRUE # non-fatal error ==> zero exit code currently
@@ -310,14 +310,14 @@ set_tests_properties (
 add_test(
 	NAME check_require_cs
 	COMMAND ${fmuCheck} -k cs  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_cs.fmu)
-set_tests_properties ( 
+set_tests_properties (
 		check_require_cs
 		PROPERTIES DEPENDS Build_before_test)
 
 add_test(
 	NAME check_require_cs_fail
 	COMMAND ${fmuCheck} -k cs  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_me.fmu)
-set_tests_properties ( 
+set_tests_properties (
 		check_require_cs_fail
 		PROPERTIES DEPENDS Build_before_test
 #        WILL_FAIL TRUE # non-fatal error ==> zero exit code currently
@@ -326,7 +326,7 @@ set_tests_properties (
 add_test(
 	NAME check_require_me_cs_fail
 	COMMAND ${fmuCheck} -k cs -k me  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_me.fmu)
-set_tests_properties ( 
+set_tests_properties (
 		check_require_me_cs_fail
 		PROPERTIES DEPENDS Build_before_test
 #        WILL_FAIL TRUE # non-fatal error ==> zero exit code currently
@@ -335,14 +335,14 @@ set_tests_properties (
 add_test(
 	NAME check_xml_on_me
 	COMMAND ${fmuCheck} -k xml  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_me.fmu)
-set_tests_properties ( 
+set_tests_properties (
 		check_xml_on_me
 		PROPERTIES DEPENDS Build_before_test)
 
 add_test(
 	NAME check_xml_on_cs
 	COMMAND ${fmuCheck} -k xml  ${FMUCHK_BUILD}/FMIL/build/Testing/BouncingBall2_cs.fmu)
-set_tests_properties ( 
+set_tests_properties (
 		check_xml_on_cs
 		PROPERTIES DEPENDS Build_before_test)
 
@@ -354,8 +354,8 @@ foreach(fmu ${BAD_FMUS})
 		WORKING_DIRECTORY ${TEST_OUT_DIR}
 		COMMAND ${fmuCheck} -t ${TEST_OUT_DIR} -l 6 -o ${testname}.csv -e ${testname}.log ${fmu} )
     set_tests_properties(${testname} PROPERTIES WILL_FAIL TRUE)
-	set_tests_properties ( 
-		${testname} 
+	set_tests_properties (
+		${testname}
 		PROPERTIES DEPENDS Build_before_test)
 endforeach(fmu)
 
@@ -366,7 +366,7 @@ foreach(fmu ${ALL_TEST_FMUS})
 		NAME ${testname}
 		WORKING_DIRECTORY ${TEST_OUT_DIR}
 		COMMAND ${fmuCheck} -t ${TEST_OUT_DIR} -l 6 -o ${testname}.csv -e ${testname}.log ${fmu} )
-	set_tests_properties ( 
-		${testname} 
+	set_tests_properties (
+		${testname}
 		PROPERTIES DEPENDS Build_before_test)
 endforeach(fmu)
