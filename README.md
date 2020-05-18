@@ -3,7 +3,7 @@
 Background information for FMI Compliance Checker (FMUChecker) application.
 
 - For build instructions see: [BUILD.md](BUILD.md)
-- Licence information is provided in: [LICENCE.md](LICENCE.md)
+- License information is provided in: [LICENSE](LICENSE)
 - Acknowledgements for used software: [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md)
 - Instructions for how to make a release: [HOW-TO-RELEASE.md](HOW-TO-RELEASE.md)
 
