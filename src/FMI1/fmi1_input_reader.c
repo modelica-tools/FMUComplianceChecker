@@ -153,9 +153,9 @@ void fmi1_update_input_interpolation(fmi1_csv_input_t* indata, double t) {
             indata->interpData[i] = v1[i] * (1.0 - indata->interpLambda) + v2[i] * indata->interpLambda;
             indata->interpContinuousData[cont_i++] = indata->interpData[i];
         } else {
-            /*discrete real, no interpolation*/
+            /* discrete real, no interpolation */
             fmi1_real_t* v1 = (fmi1_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->discreteIndex);
-            indata->interpData[i] =  *v1;
+            indata->interpData[i] = v1[i];
         }
     }
 }
