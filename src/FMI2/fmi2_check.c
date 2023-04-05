@@ -335,6 +335,7 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 	char fmt_i[20];
 	char fmt_true[20];
 	char fmt_false[20];
+        char time_str[25]; /* for holding the string representation of time */
 
     if(cdata->maxOutputPts > 0) {
         if(time < cdata->nextOutputTime) {
@@ -364,7 +365,11 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 		sprintf(fmt_false, "%c0", cdata->CSV_separator);
 	}
 
-	if(checked_fprintf(cdata, "%.16E", time) != jm_status_success) {
+        void g_fmt(char *buf, double d, unsigned bufsize);
+        g_fmt(time_str, time, 25); /* defined in ThirdParty/gdtoa/g_dfmt.c */
+
+        /* was: checked_fprintf(cdata, "%.16E", time) */
+	if(checked_fprintf(cdata, "%s", time_str) != jm_status_success) {
 		return jm_status_error;
 	}
 

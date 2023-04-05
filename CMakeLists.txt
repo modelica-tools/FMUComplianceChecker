@@ -189,7 +189,7 @@ file(WRITE ${CMAKE_BINARY_DIR}/fmu_checker_version.h
 set(SOURCE
 	${FMUCHK_HOME}/src/Common/fmuChecker.c
 
-    ${FMUCHK_HOME}/src/FMI1/fmi1_input_reader.c
+	${FMUCHK_HOME}/src/FMI1/fmi1_input_reader.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_check.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_me_sim.c
 	${FMUCHK_HOME}/src/FMI1/fmi1_cs_sim.c
@@ -198,6 +198,13 @@ set(SOURCE
 	${FMUCHK_HOME}/src/FMI2/fmi2_check.c
 	${FMUCHK_HOME}/src/FMI2/fmi2_me_sim.c
 	${FMUCHK_HOME}/src/FMI2/fmi2_cs_sim.c
+
+	${FMUCHK_HOME}/ThirdParty/gdtoa/dmisc.c
+	${FMUCHK_HOME}/ThirdParty/gdtoa/g__fmt.c
+	${FMUCHK_HOME}/ThirdParty/gdtoa/g_dfmt.c
+	${FMUCHK_HOME}/ThirdParty/gdtoa/gdtoa.c
+	${FMUCHK_HOME}/ThirdParty/gdtoa/gmisc.c
+	${FMUCHK_HOME}/ThirdParty/gdtoa/misc.c
 	)
 set(HEADERS
     ${FMUCHK_HOME}/include/fmi1_input_reader.h
