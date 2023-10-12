@@ -1,3 +1,6 @@
+> [!IMPORTANT] 
+The development of the FMU Compliance Checker has been discontinued. Please use one of the tools listed on https://fmi-standard.org/validation/ instead.
+
 # FMI Compliance Checker
 
 Background information for FMI Compliance Checker (FMUChecker) application.
