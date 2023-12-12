@@ -136,7 +136,6 @@ void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
         indata->interpIndex1 = indata->interpIndex2 - 1;
 		t1 = jm_vector_get_item(double)(&indata->timeStamps, indata->interpIndex1);
 		indata->interpLambda = (t - t1)/(t2 -t1);
-
 	}
 
 	for(i = 0; i < fmi2_import_get_variable_list_size(indata->realInputs); i++) {
@@ -147,9 +146,9 @@ void fmi2_update_input_interpolation(fmi2_csv_input_t* indata, double t) {
 			fmi2_real_t* v2 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->interpIndex2);
 			indata->interpData[i] = v1[i] * (1.0 - indata->interpLambda) + v2[i] * indata->interpLambda;
         } else {
-            /*discrete real, no interpolation*/
+            /* discrete real, no interpolation */
 			fmi2_real_t* v1 = (fmi2_real_t*)jm_vector_get_item(jm_voidp)(indata->realInputData,indata->discreteIndex);
-			indata->interpData[i] =  *v1;
+			indata->interpData[i] = v1[i];
 		}
 	}
 }
