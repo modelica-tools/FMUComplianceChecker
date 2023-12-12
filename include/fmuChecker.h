@@ -224,6 +224,9 @@ jm_status_enu_t fmi2_write_csv_header(fmu_check_data_t* cdata);
 
 jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time);
 
+/* Check that it's possible to get all variables with causality output */
+jm_status_enu_t fmi2_check_get_INIT(fmu_check_data_t* cdata);
+
 /** Check if the fmi status is ok or warning */
 static int fmi2_status_ok_or_warning(fmi2_status_t fmistatus) {
 	return (fmistatus == fmi2_status_ok) || (fmistatus == fmi2_status_warning);
